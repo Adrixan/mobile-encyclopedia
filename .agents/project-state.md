@@ -36,4 +36,5 @@
 - **Sprint 2**: Interactive Textual TUI (US4.1), CLI Automation & Kiwix / Static Serving (US5.1) (Done: 8 pts)
 - **Sprint 3**: Zero-setup bootstrap (`run.sh`), Vault Category Routing, TUI Path Dialog, Live Download Speed Streaming (Done: 8 pts)
 - **Sprint 4**: Dynamic Version Resolution, Canonical Versionless Naming, Safe Atomic Pruning, Kolibri LMS Integration, Android Reader Matrix, and Dedicated Standalone Tools Suite (Done: 18 pts)
-- **Total Velocity Delivered**: 47 Story Points. All 38 automated test suites passing (100% green).
+- **Sprint 5**: Cross-Platform Local Serving Architecture, WASM MIME types, Threading Server with Address Reuse & Intranet Portal Dashboard (Done: 5 pts)
+- **Total Velocity Delivered**: 52 Story Points. All 43 automated test suites passing (100% green).

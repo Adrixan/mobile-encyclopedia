@@ -11,9 +11,10 @@
 - [x] **US6.2: Standalone Offline Web Applications & Tools Suite (`tools/`)** (5 pts) — PASS
 - [x] **US6.3: Kolibri Offline LMS Course Catalog & Android Readers Matrix** (5 pts) — PASS
 - [x] **US6.4: Zero-Setup Launcher (`run.sh`) & Built-in In-App Help & Reader Guide Modal** (3 pts) — PASS
+- [x] **US7.1: Cross-Platform Multi-Threaded Local Server Architecture (`offline_vault.server`)** (5 pts) — PASS
 
 ## Quality Gates & Verification Summary
-- [x] **Automated Test Suite**: 38 tests passed in 2.77s (100% green).
+- [x] **Automated Test Suite**: 43 tests passed in 2.92s (100% green).
 - [x] **Security Baseline**: Strict HTTPS enforcement, ZipSlip traversal protection, subprocess argument vectors, restricted file permissions (`0600`).
 - [x] **Accessibility Baseline**: WCAG 2.1 AA compliant, full keyboard control in TUI, clear status indicators.
 - [x] **Documentation**: Full Android and Linux desktop setup guides in `README.md` and accessible inside the TUI via `H`/`?`.
