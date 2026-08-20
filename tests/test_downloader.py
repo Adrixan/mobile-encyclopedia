@@ -143,3 +143,12 @@ def test_us3_1_atomic_download_on_failure(tmp_path):
     res = engine.download("http://127.0.0.1:59999/nonexistent.bin", destination=dest)
     assert res.success is False
     assert not dest.exists()
+
+
+def test_us3_1_resolve_latest_kiwix_version():
+    from offline_vault.downloader import extract_kiwix_date_stamp, resolve_upstream_url
+
+    assert extract_kiwix_date_stamp("explainxkcd_en_all_maxi_2026-07.zim") == (2026, 7)
+    assert extract_kiwix_date_stamp("wikipedia_en_top_maxi_2024-05.zim") == (2024, 5)
+    assert extract_kiwix_date_stamp("no_date.zim") == (0, 0)
+

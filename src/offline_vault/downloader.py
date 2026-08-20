@@ -1,4 +1,4 @@
-"""High-throughput multi-backend resumable downloader with dynamic mirror resolution."""
+"""High-throughput multi-backend resumable downloader with dynamic latest-version resolution."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, List, Optional, Tuple
 
 import requests
 
@@ -35,13 +35,23 @@ def verify_file_hash(path: Path, expected_sha256: str) -> bool:
     return hasher.hexdigest().lower() == expected_sha256.lower()
 
 
+def extract_kiwix_date_stamp(url_or_filename: str) -> Tuple[int, int]:
+    """Extract (year, month) from Kiwix filename like name_YYYY-MM.zim."""
+    match = re.search(r"_(\d{4})-(\d{2})\.zim", url_or_filename)
+    if match:
+        return int(match.group(1)), int(match.group(2))
+    return (0, 0)
+
+
 def get_kiwix_library_map() -> Dict[str, str]:
-    """Fetch and parse Kiwix library XML mapping base names to live URLs."""
+    """Fetch and parse Kiwix library XML, mapping base names to their latest live URLs."""
     global _KIWIX_CACHE
     if _KIWIX_CACHE is not None:
         return _KIWIX_CACHE
 
     _KIWIX_CACHE = {}
+    grouped_by_base: Dict[str, List[Tuple[Tuple[int, int], str]]] = {}
+
     try:
         req = urllib.request.Request(
             "https://download.kiwix.org/library/library_zim.xml",
@@ -52,39 +62,42 @@ def get_kiwix_library_map() -> Dict[str, str]:
         root = tree.getroot()
         for b in root.findall("book"):
             url = b.attrib.get("url", "").replace(".meta4", "")
-            if not url:
+            if not url or not url.endswith(".zim"):
                 continue
             fn = url.split("/")[-1]
             base = re.sub(r"_\d{4}-\d{2}\.zim$", "", fn)
-            _KIWIX_CACHE[base] = url
-            _KIWIX_CACHE[fn] = url
+            date_stamp = extract_kiwix_date_stamp(fn)
+
+            if base not in grouped_by_base:
+                grouped_by_base[base] = []
+            grouped_by_base[base].append((date_stamp, url))
+
+        # Pick the latest version for each base
+        for base, versions in grouped_by_base.items():
+            versions.sort(key=lambda x: x[0])
+            latest_url = versions[-1][1]
+            _KIWIX_CACHE[base] = latest_url
+            _KIWIX_CACHE[base.replace("_maxi", "").replace("_nopic", "")] = latest_url
     except Exception:
         pass
     return _KIWIX_CACHE
 
 
 def resolve_upstream_url(url: str) -> str:
-    """Dynamically resolve outdated or mirror URLs to active endpoints."""
+    """Dynamically resolve outdated or mirror URLs to the newest active endpoint."""
     if "download.kiwix.org" in url:
         fn = url.split("/")[-1]
         base = re.sub(r"_\d{4}-\d{2}\.zim$", "", fn).replace(".zim", "")
-        # Check if URL itself is active
-        try:
-            req = urllib.request.Request(url, headers={"User-Agent": "OfflineVault/1.0"}, method="HEAD")
-            with urllib.request.urlopen(req, timeout=3) as resp:
-                if resp.status == 200:
-                    return url
-        except Exception:
-            pass
 
-        # Fallback to library map resolution
+        # Lookup in library map to find the newest dated version
         lib_map = get_kiwix_library_map()
         if base in lib_map:
             return lib_map[base]
-        # Match substring
+
         for k, v in lib_map.items():
-            if base in k or k in base or "explainxkcd" in base and "explainxkcd" in k:
+            if base in k or k in base or ("explainxkcd" in base and "explainxkcd" in k):
                 return v
+
     return url
 
 

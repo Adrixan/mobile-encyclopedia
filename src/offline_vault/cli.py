@@ -47,8 +47,9 @@ def build_parser() -> argparse.ArgumentParser:
     sync_p = subparsers.add_parser("sync", help="Synchronize / download selected resources non-interactively")
     sync_p.add_argument("--all", action="store_true", help="Sync all catalog resources")
     sync_p.add_argument("--category", "-c", help="Sync all items in category")
-    sync_p.add_argument("--language", "-l", help="Sync all items in language")
+    sync_p.add_argument("--language", "-l", help="Filter and sync all items in language")
     sync_p.add_argument("--id", "-i", action="append", help="Specific resource ID(s) to sync")
+    sync_p.add_argument("--force", "--update", "-u", action="store_true", help="Force update/re-download and prune old versions")
     sync_p.add_argument("--vault-dir", help="Override vault directory")
 
     # Serve
@@ -139,7 +140,7 @@ def handle_sync(args: argparse.Namespace, config: VaultConfig, catalog: Resource
     console.print(f"[bold cyan]Initiating sync for {len(target_ids)} resources into:[/bold cyan] {config.vault_dir}")
     sync_mgr = SyncManager(config, catalog)
 
-    summary = sync_mgr.sync_items(target_ids)
+    summary = sync_mgr.sync_items(target_ids, force_update=args.force)
     console.print(
         f"[bold green]Sync Completed:[/bold green] "
         f"Downloaded: {summary.completed}, Skipped: {summary.skipped}, Failed: {summary.failed}"

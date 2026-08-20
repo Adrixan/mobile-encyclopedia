@@ -242,6 +242,7 @@ class SyncScreen(ModalScreen[None]):
 
         summary = self.sync_manager.sync_items(
             self.selected_ids,
+            force_update=True,
             progress_callback=on_item_progress,
             item_completed_callback=on_item_complete,
         )
