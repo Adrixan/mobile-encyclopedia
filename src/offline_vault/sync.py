@@ -27,7 +27,7 @@ class SyncSummary:
 
 
 class SyncManager:
-    """Orchestrates downloading resources into vault structure and indexing."""
+    """Orchestrates downloading resources into vault structure matching TUI categories."""
 
     def __init__(self, config: VaultConfig, catalog: ResourceCatalog) -> None:
         self.config = config
@@ -40,16 +40,17 @@ class SyncManager:
         )
 
     def get_destination_for_item(self, item: ResourceItem) -> Path:
-        """Resolve final file path inside vault."""
-        subfolder = self.subdirs.get(item.target_subfolder, self.vault_root / "other")
-        # Extract filename from URL or build from item ID + format
+        """Resolve destination file path matching the item's category folder."""
+        cat_dir = self.subdirs.get(item.category, self.vault_root / item.category)
+        cat_dir.mkdir(parents=True, exist_ok=True)
+
         url_filename = item.upstream_url.rstrip("/").split("/")[-1]
         if "." not in url_filename or url_filename in ["all", "latest", "master.tar.gz"]:
             ext = f".{item.format}"
             filename = f"{item.id}{ext}"
         else:
             filename = url_filename
-        return subfolder / filename
+        return cat_dir / filename
 
     def sync_items(
         self,
@@ -57,7 +58,7 @@ class SyncManager:
         progress_callback: Optional[Callable[[ResourceItem, DownloadProgress], None]] = None,
         item_completed_callback: Optional[Callable[[ResourceItem, DownloadResult], None]] = None,
     ) -> SyncSummary:
-        """Download and register selected resources."""
+        """Download and register selected resources into category subdirectories."""
         completed = 0
         failed = 0
         skipped = 0
@@ -118,11 +119,11 @@ class SyncManager:
         )
 
     def register_kiwix_zim(self, zim_path: Path) -> bool:
-        """Register ZIM file in Kiwix library.xml via kiwix-manage."""
+        """Register ZIM file in Kiwix library.xml."""
         if not shutil.which("kiwix-manage"):
             return False
 
-        library_xml = self.vault_root / "zims" / "library.xml"
+        library_xml = self.vault_root / "library.xml"
         try:
             cmd = ["kiwix-manage", str(library_xml), "add", str(zim_path)]
             res = subprocess.run(cmd, capture_output=True, text=True, check=False)

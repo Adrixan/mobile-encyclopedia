@@ -1,4 +1,4 @@
-"""Interactive Textual Terminal UI with live storage budget meter."""
+"""Interactive Textual Terminal UI with live storage budget meter and vault location controls."""
 
 from __future__ import annotations
 
@@ -24,7 +24,14 @@ from textual.widgets import (
 )
 
 from offline_vault.catalog import ResourceCatalog, ResourceItem, load_catalog
-from offline_vault.config import VaultConfig, get_disk_space, load_config, save_config, validate_and_resolve_vault_path
+from offline_vault.config import (
+    VaultConfig,
+    ensure_vault_structure,
+    get_disk_space,
+    load_config,
+    save_config,
+    validate_and_resolve_vault_path,
+)
 from offline_vault.downloader import DownloadProgress, DownloadResult
 from offline_vault.i18n import get_locale, set_locale, t
 from offline_vault.sync import SyncManager
@@ -106,18 +113,25 @@ class BudgetBarWidget(Static):
 
 
 class PathDialog(ModalScreen[Optional[str]]):
-    """Modal dialog to configure vault directory path."""
+    """Modal dialog to configure vault directory path with presets."""
 
     DEFAULT_CSS = """
     PathDialog {
         align: center middle;
     }
     #dialog_box {
-        width: 60;
+        width: 70;
         height: auto;
         border: solid $accent;
         background: $surface;
         padding: 1 2;
+    }
+    #preset_bar {
+        margin: 1 0;
+        height: 3;
+    }
+    #preset_bar Button {
+        margin-right: 1;
     }
     #path_input {
         margin: 1 0;
@@ -133,11 +147,28 @@ class PathDialog(ModalScreen[Optional[str]]):
 
     def compose(self) -> ComposeResult:
         with Vertical(id="dialog_box"):
-            yield Label("Set Vault Storage Directory:", classes="title")
+            yield Label("[bold cyan]Set Offline Vault Storage Directory[/bold cyan]", classes="title")
+            yield Label("[dim]Select a preset or type a custom destination folder path:[/dim]")
+            with Horizontal(id="preset_bar"):
+                yield Button("~/offline_vault", variant="default", id="preset_home")
+                yield Button("/sdcard/Download/offline_vault", variant="default", id="preset_sdcard")
+                yield Button("/tmp/offline_vault", variant="default", id="preset_tmp")
             yield Input(value=self.current_path, id="path_input")
             with Horizontal(id="btn_bar"):
-                yield Button("Save", variant="primary", id="btn_save")
+                yield Button("Save & Apply", variant="primary", id="btn_save")
                 yield Button("Cancel", variant="default", id="btn_cancel")
+
+    @on(Button.Pressed, "#preset_home")
+    def on_preset_home(self) -> None:
+        self.query_one("#path_input", Input).value = str(Path.home() / "offline_vault")
+
+    @on(Button.Pressed, "#preset_sdcard")
+    def on_preset_sdcard(self) -> None:
+        self.query_one("#path_input", Input).value = "/sdcard/Download/offline_vault"
+
+    @on(Button.Pressed, "#preset_tmp")
+    def on_preset_tmp(self) -> None:
+        self.query_one("#path_input", Input).value = "/tmp/offline_vault"
 
     @on(Button.Pressed, "#btn_save")
     def on_save(self) -> None:
@@ -200,7 +231,7 @@ class SyncScreen(ModalScreen[None]):
         def on_item_progress(item: ResourceItem, p: DownloadProgress) -> None:
             self.app.call_from_thread(
                 status_lbl.update,
-                f"Downloading: [bold]{item.name}[/bold] ({p.percent:.1f}%)"
+                f"Downloading to [magenta]{item.category}/[/magenta]: [bold]{item.name}[/bold] ({p.percent:.1f}%)"
             )
             self.app.call_from_thread(item_bar.update, progress=p.percent)
 
@@ -237,11 +268,18 @@ class OfflineVaultApp(App):
         background: $background;
         color: $text;
     }
-    #vault_info_bar {
+    #top_vault_bar {
         background: $surface;
         padding: 0 1;
-        height: 1;
+        height: 3;
+        align: left middle;
+    }
+    #vault_info_bar {
+        width: 1fr;
         color: $text-muted;
+    }
+    #btn_set_path {
+        margin-right: 1;
     }
     #budget_bar {
         background: $panel;
@@ -291,7 +329,10 @@ class OfflineVaultApp(App):
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
-        yield Label(f"Vault: {self.config.vault_dir}", id="vault_info_bar")
+        with Horizontal(id="top_vault_bar"):
+            yield Label(f"📁 Vault Location: {self.config.vault_dir}", id="vault_info_bar")
+            yield Button("📂 Set Vault Location (P)", variant="warning", id="btn_set_path")
+            yield Button("⚡ Start Sync (S)", variant="success", id="btn_top_sync")
         yield BudgetBarWidget(id="budget_bar")
         with Horizontal(id="filter_container"):
             yield Input(placeholder="Filter (e.g. opensuse, lang:bs, admin)...", id="search_input")
@@ -351,6 +392,14 @@ class OfflineVaultApp(App):
         self.model.search_query = event.value
         self.refresh_table()
 
+    @on(Button.Pressed, "#btn_set_path")
+    def on_btn_set_path_pressed(self) -> None:
+        self.action_change_path()
+
+    @on(Button.Pressed, "#btn_top_sync")
+    def on_btn_top_sync_pressed(self) -> None:
+        self.action_start_sync()
+
     @on(Button.Pressed, "#category_bar Button")
     def on_category_pressed(self, event: Button.Pressed) -> None:
         if not event.button.id:
@@ -389,12 +438,14 @@ class OfflineVaultApp(App):
             if new_path:
                 try:
                     resolved = validate_and_resolve_vault_path(new_path, create_if_missing=True)
+                    ensure_vault_structure(resolved)
                     self.config.vault_dir = str(resolved)
                     save_config(self.config)
                     _, _, free = get_disk_space(resolved)
                     self.model.total_free_bytes = free
-                    self.query_one("#vault_info_bar", Label).update(f"Vault: {self.config.vault_dir}")
+                    self.query_one("#vault_info_bar", Label).update(f"📁 Vault Location: {self.config.vault_dir}")
                     self.update_budget_display()
+                    self.notify(f"Vault location set to: {self.config.vault_dir}", severity="information")
                 except Exception as e:
                     self.notify(f"Error setting path: {e}", severity="error")
 

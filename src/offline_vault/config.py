@@ -111,11 +111,12 @@ def validate_and_resolve_vault_path(raw_path: str, create_if_missing: bool = Tru
 
 
 def ensure_vault_structure(vault_root: Path) -> Dict[str, Path]:
-    """Ensure standard vault subdirectories exist."""
-    subdirs = ["zims", "docsets", "maps", "literature", "admin", "logs", ".tmp"]
+    """Ensure vault subdirectories exist matching TUI categories."""
+    subdirs = ["admin", "dev", "tutorials", "wiki", "survival", "maps", "qna", "fun", ".tmp", "logs"]
     created: Dict[str, Path] = {}
     for sub in subdirs:
         sub_path = vault_root / sub
         sub_path.mkdir(parents=True, exist_ok=True)
         created[sub] = sub_path
     return created
+

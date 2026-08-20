@@ -1,17 +1,22 @@
-"""High-throughput multi-backend resumable downloader."""
+"""High-throughput multi-backend resumable downloader with dynamic mirror resolution."""
 
 from __future__ import annotations
 
 import hashlib
 import os
+import re
 import shutil
 import subprocess
 import time
+import urllib.request
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable, Dict, Optional
 
 import requests
+
+_KIWIX_CACHE: Optional[Dict[str, str]] = None
 
 
 def has_aria2() -> bool:
@@ -28,6 +33,59 @@ def verify_file_hash(path: Path, expected_sha256: str) -> bool:
         while chunk := f.read(65536):
             hasher.update(chunk)
     return hasher.hexdigest().lower() == expected_sha256.lower()
+
+
+def get_kiwix_library_map() -> Dict[str, str]:
+    """Fetch and parse Kiwix library XML mapping base names to live URLs."""
+    global _KIWIX_CACHE
+    if _KIWIX_CACHE is not None:
+        return _KIWIX_CACHE
+
+    _KIWIX_CACHE = {}
+    try:
+        req = urllib.request.Request(
+            "https://download.kiwix.org/library/library_zim.xml",
+            headers={"User-Agent": "OfflineVault/1.0"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            tree = ET.parse(resp)
+        root = tree.getroot()
+        for b in root.findall("book"):
+            url = b.attrib.get("url", "").replace(".meta4", "")
+            if not url:
+                continue
+            fn = url.split("/")[-1]
+            base = re.sub(r"_\d{4}-\d{2}\.zim$", "", fn)
+            _KIWIX_CACHE[base] = url
+            _KIWIX_CACHE[fn] = url
+    except Exception:
+        pass
+    return _KIWIX_CACHE
+
+
+def resolve_upstream_url(url: str) -> str:
+    """Dynamically resolve outdated or mirror URLs to active endpoints."""
+    if "download.kiwix.org" in url:
+        fn = url.split("/")[-1]
+        base = re.sub(r"_\d{4}-\d{2}\.zim$", "", fn).replace(".zim", "")
+        # Check if URL itself is active
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "OfflineVault/1.0"}, method="HEAD")
+            with urllib.request.urlopen(req, timeout=3) as resp:
+                if resp.status == 200:
+                    return url
+        except Exception:
+            pass
+
+        # Fallback to library map resolution
+        lib_map = get_kiwix_library_map()
+        if base in lib_map:
+            return lib_map[base]
+        # Match substring
+        for k, v in lib_map.items():
+            if base in k or k in base or "explainxkcd" in base and "explainxkcd" in k:
+                return v
+    return url
 
 
 @dataclass
@@ -80,20 +138,21 @@ class DownloaderEngine:
         tmp_path = dest_path.with_name(dest_path.name + ".tmp")
 
         start_time = time.time()
+        resolved_url = resolve_upstream_url(url)
 
-        if self.prefer_aria2 and url.startswith("https://"):
-            result = self._download_aria2(url, dest_path, tmp_path, progress_callback)
+        if self.prefer_aria2 and resolved_url.startswith("https://"):
+            result = self._download_aria2(resolved_url, dest_path, tmp_path, progress_callback)
             if not result.success:
                 # Fallback to python streamer
-                result = self._download_python(url, dest_path, tmp_path, progress_callback)
+                result = self._download_python(resolved_url, dest_path, tmp_path, progress_callback)
         else:
-            result = self._download_python(url, dest_path, tmp_path, progress_callback)
+            result = self._download_python(resolved_url, dest_path, tmp_path, progress_callback)
 
         if result.success and expected_sha256:
             if not verify_file_hash(dest_path, expected_sha256):
                 dest_path.unlink(missing_ok=True)
                 return DownloadResult(
-                    url=url,
+                    url=resolved_url,
                     destination=dest_path,
                     success=False,
                     error_message="Checksum verification failed",
@@ -115,6 +174,8 @@ class DownloaderEngine:
             "aria2c",
             "--allow-overwrite=true",
             "--auto-file-renaming=false",
+            "--follow-metalink=mem",
+            "--user-agent=OfflineVault/1.0",
             f"--max-connection-per-server={self.split_connections}",
             f"--split={self.split_connections}",
             "--min-split-size=1M",
@@ -178,7 +239,7 @@ class DownloaderEngine:
     ) -> DownloadResult:
         """Download using Python requests with HTTP Range headers for resuming."""
         existing_size = tmp_path.stat().st_size if tmp_path.exists() else 0
-        headers = {}
+        headers = {"User-Agent": "OfflineVault/1.0"}
         if existing_size > 0:
             headers["Range"] = f"bytes={existing_size}-"
 
@@ -187,6 +248,7 @@ class DownloaderEngine:
                 url,
                 headers=headers,
                 stream=True,
+                allow_redirects=True,
                 timeout=self.timeout,
             ) as response:
                 if response.status_code not in (200, 206):
