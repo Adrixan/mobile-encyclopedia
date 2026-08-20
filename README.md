@@ -35,40 +35,30 @@ Offline Vault allows you to curate, download, update, and serve offline copies o
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Zero-Setup 1-Click Launcher)
 
-### 1. Installation on Linux PC
+Clone the repository and run `./run.sh` — it will **automatically create and configure the `.venv` and dependencies on first launch**:
 
 ```bash
-# Clone the repository
 git clone https://github.com/Adrixan/mobile-encyclopedia.git
 cd mobile-encyclopedia
-
-# Create virtual environment and install
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .
-
-# (Optional recommended download accelerator)
-sudo zypper install aria2      # openSUSE
-# or sudo apt install aria2    # Debian/Ubuntu
-# or sudo pacman -S aria2      # Arch Linux
+./run.sh
 ```
 
-### 2. Installation on Android (Termux)
+### Installation on Android (Termux)
 
 ```bash
-# Update Termux packages & grant storage access
+# 1. Update Termux packages & grant storage access
 pkg update -y && pkg upgrade -y
 termux-setup-storage
 
-# Install dependencies
+# 2. Install Python & recommended tools
 pkg install -y python aria2 kiwix-tools
 
-# Clone and install
+# 3. Clone and launch
 git clone https://github.com/Adrixan/mobile-encyclopedia.git
 cd mobile-encyclopedia
-pip install -e .
+./run.sh
 ```
 
 ---
