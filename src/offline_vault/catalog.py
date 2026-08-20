@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 import yaml
 
 ALLOWED_SCHEMES = {"https"}
-VALID_FORMATS = {"zim", "docset", "map", "epub", "html", "tar", "zip"}
+VALID_FORMATS = {"zim", "docset", "map", "epub", "html", "tar", "zip", "kolibri"}
 VALID_CATEGORIES = {"admin", "dev", "tutorials", "wiki", "survival", "maps", "qna", "fun"}
 
 

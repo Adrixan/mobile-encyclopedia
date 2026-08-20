@@ -53,8 +53,11 @@ def build_parser() -> argparse.ArgumentParser:
     sync_p.add_argument("--vault-dir", help="Override vault directory")
 
     # Serve
-    serve_p = subparsers.add_parser("serve", help="Launch local Kiwix or static HTTP server")
-    serve_p.add_argument("--port", "-p", type=int, default=8080, help="Port to listen on (default: 8080)")
+    serve_p = subparsers.add_parser("serve", help="Launch local Kolibri LMS, Kiwix, or static HTTP server")
+    serve_p.add_argument("--kolibri", action="store_true", help="Start Kolibri offline LMS server")
+    serve_p.add_argument("--kiwix", action="store_true", help="Start Kiwix ZIM server")
+    serve_p.add_argument("--static", action="store_true", help="Start static HTTP doc server")
+    serve_p.add_argument("--port", "-p", type=int, help="Port to listen on (default: 8080 for Kolibri, 8000 for Kiwix/Static)")
     serve_p.add_argument("--vault-dir", help="Override vault directory")
 
     return parser
@@ -152,31 +155,57 @@ def handle_sync(args: argparse.Namespace, config: VaultConfig, catalog: Resource
 
 
 def handle_serve(args: argparse.Namespace, config: VaultConfig, console: Console) -> int:
-    """Handle 'serve' subcommand."""
+    """Handle 'serve' subcommand supporting Kolibri LMS, Kiwix, and Static docs."""
     vault_dir = Path(args.vault_dir if args.vault_dir else config.vault_dir).resolve()
-    zims_dir = vault_dir / "zims"
-    library_xml = zims_dir / "library.xml"
+    kolibri_dir = vault_dir / "tutorials" / "kolibri"
+    library_xml = vault_dir / "library.xml"
 
-    if shutil.which("kiwix-serve") and library_xml.exists():
-        console.print(f"[bold green]Starting kiwix-serve on port {args.port}...[/bold green]")
-        cmd = ["kiwix-serve", f"--port={args.port}", f"--library={library_xml}"]
+    # 1. Kolibri Server
+    if args.kolibri or (not args.kiwix and not args.static and shutil.which("kolibri")):
+        port = args.port or 8080
+        kolibri_dir.mkdir(parents=True, exist_ok=True)
+        console.print(f"[bold cyan]Launching Kolibri LMS on port {port}...[/bold cyan]")
+        console.print(f"[dim]KOLIBRI_HOME: {kolibri_dir}[/dim]")
+        env = os.environ.copy()
+        env["KOLIBRI_HOME"] = str(kolibri_dir)
+        try:
+            subprocess.run(["kolibri", "start", f"--port={port}", "--foreground"], env=env, check=True)
+            return 0
+        except KeyboardInterrupt:
+            console.print("\nKolibri server stopped.")
+            return 0
+        except Exception as e:
+            console.print(f"[bold red]Failed to start Kolibri: {e}[/bold red]")
+            return 1
+
+    # 2. Kiwix Server
+    if args.kiwix or (not args.static and shutil.which("kiwix-serve") and library_xml.exists()):
+        port = args.port or 8000
+        console.print(f"[bold green]Starting kiwix-serve on port {port}...[/bold green]")
+        cmd = ["kiwix-serve", f"--port={port}", f"--library={library_xml}"]
         try:
             subprocess.run(cmd, check=True)
             return 0
         except KeyboardInterrupt:
-            console.print("\nServer stopped.")
+            console.print("\nKiwix server stopped.")
             return 0
-    else:
-        console.print(f"[bold yellow]kiwix-serve or library.xml not found. Starting static doc server for {vault_dir} on port {args.port}...[/bold yellow]")
+
+    # 3. Fallback to Static HTTP Doc Server
+    port = args.port or 8000
+    console.print(f"[bold yellow]Starting offline static web server for {vault_dir} on port {port}...[/bold yellow]")
+    cwd_prev = os.getcwd()
+    try:
         os.chdir(vault_dir)
         handler = http.server.SimpleHTTPRequestHandler
-        with socketserver.TCPServer(("", args.port), handler) as httpd:
-            console.print(f"Serving at http://localhost:{args.port} (Press Ctrl+C to stop)")
+        with socketserver.TCPServer(("", port), handler) as httpd:
+            console.print(f"Serving at http://localhost:{port} (Press Ctrl+C to stop)")
             try:
                 httpd.serve_forever()
             except KeyboardInterrupt:
                 console.print("\nServer stopped.")
         return 0
+    finally:
+        os.chdir(cwd_prev)
 
 
 def run_cli(argv: Optional[List[str]] = None) -> int:

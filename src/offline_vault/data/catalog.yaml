@@ -219,7 +219,7 @@ resources:
     tags: ["dev", "security", "owasp"]
 
   # --------------------------------------------------------------------------
-  # 3. Developer Tutorials
+  # 3. Interactive Tutorials & Courses (ZIM, HTML, & Kolibri LMS)
   # --------------------------------------------------------------------------
   - id: "javascript_info_tutorial"
     name: "Javascript.info Complete Offline Tutorial"
@@ -250,6 +250,97 @@ resources:
     upstream_url: "https://lb.download.kiwix.org/zim/freecodecamp/freecodecamp_en_all_2026-05.zim"
     description: "Full-stack web development tutorials, algorithms, and data structures."
     tags: ["tutorials", "coding", "web"]
+
+  # --- Kolibri Interactive LMS Channels ---
+  - id: "kolibri_phet_simulations"
+    name: "PhET Interactive STEM Simulations (Interactive Lab)"
+    category: "tutorials"
+    language: "en"
+    format: "kolibri"
+    size_mb: 1800
+    upstream_url: "https://studio.learningequality.org/en/channels/#/public"
+    description: "Interactive HTML5 simulations for physics, chemistry, biology, circuits, and math."
+    tags: ["kolibri", "physics", "chemistry", "simulations", "interactive", "stem"]
+
+  - id: "kolibri_khan_computing"
+    name: "Khan Academy - Computer Science, Cryptography & Algorithms"
+    category: "tutorials"
+    language: "en"
+    format: "kolibri"
+    size_mb: 2200
+    upstream_url: "https://studio.learningequality.org/en/channels/#/public"
+    description: "Algorithms, information theory, cryptography, programming logic, and databases."
+    tags: ["kolibri", "cs", "algorithms", "cryptography", "python", "programming"]
+
+  - id: "kolibri_khan_math_advanced"
+    name: "Khan Academy - Calculus, Linear Algebra & Differential Equations"
+    category: "tutorials"
+    language: "en"
+    format: "kolibri"
+    size_mb: 3400
+    upstream_url: "https://studio.learningequality.org/en/channels/#/public"
+    description: "Complete calculus sequence, matrix operations, vectors, and differential equations."
+    tags: ["kolibri", "math", "calculus", "linear-algebra", "stem"]
+
+  - id: "kolibri_khan_physics_ee"
+    name: "Khan Academy - Physics & Electrical Engineering"
+    category: "tutorials"
+    language: "en"
+    format: "kolibri"
+    size_mb: 2800
+    upstream_url: "https://studio.learningequality.org/en/channels/#/public"
+    description: "Circuits analysis, amplifiers, semiconductors, electromagnetism, and classical physics."
+    tags: ["kolibri", "physics", "circuits", "electrical", "engineering"]
+
+  - id: "kolibri_ck12_stem_flexbooks"
+    name: "CK-12 STEM Comprehensive Interactive Textbooks"
+    category: "tutorials"
+    language: "en"
+    format: "kolibri"
+    size_mb: 1600
+    upstream_url: "https://studio.learningequality.org/en/channels/#/public"
+    description: "Modular science and math textbooks with interactive exercises and simulations."
+    tags: ["kolibri", "science", "chemistry", "biology", "physics"]
+
+  - id: "kolibri_ted_ed_lessons"
+    name: "TED-Ed Curated Lessons in Science, Tech & Problem Solving"
+    category: "tutorials"
+    language: "en"
+    format: "kolibri"
+    size_mb: 1400
+    upstream_url: "https://studio.learningequality.org/en/channels/#/public"
+    description: "Curated animated lessons on physics puzzles, technology, history, and critical thinking."
+    tags: ["kolibri", "science", "critical-thinking", "technology"]
+
+  - id: "kolibri_khan_espanol"
+    name: "Khan Academy en Español (Matemáticas, Ciencia y Computación)"
+    category: "tutorials"
+    language: "es"
+    format: "kolibri"
+    size_mb: 4200
+    upstream_url: "https://studio.learningequality.org/en/channels/#/public"
+    description: "Cursos completos en español de cálculo, física, química y programación."
+    tags: ["kolibri", "spanish", "espanol", "math", "stem"]
+
+  - id: "kolibri_khan_francais"
+    name: "Khan Academy en Français (Mathématiques et Sciences)"
+    category: "tutorials"
+    language: "fr"
+    format: "kolibri"
+    size_mb: 3800
+    upstream_url: "https://studio.learningequality.org/en/channels/#/public"
+    description: "Cours complets en français pour les mathématiques, physique et sciences."
+    tags: ["kolibri", "french", "francais", "math", "stem"]
+
+  - id: "kolibri_khan_arabic"
+    name: "Khan Academy بالعربية (الرياضيات والعلوم والهندسة)"
+    category: "tutorials"
+    language: "ar"
+    format: "kolibri"
+    size_mb: 3100
+    upstream_url: "https://studio.learningequality.org/en/channels/#/public"
+    description: "مناهج خان أكاديمي الكاملة باللغة العربية للعلوم والرياضيات والهندسة البرمجية."
+    tags: ["kolibri", "arabic", "math", "stem"]
 
   # --------------------------------------------------------------------------
   # 4. Multilingual Reference (8 Languages: EN, ES, BS, HR, SR, SL, FR, AR)
@@ -377,6 +468,26 @@ resources:
   # --------------------------------------------------------------------------
   # 5. Practical Knowledge, Survival & Engineering
   # --------------------------------------------------------------------------
+  - id: "kolibri_sikana_practical_trades"
+    name: "Sikana - Practical Trades, DIY, Woodworking & Plumbing"
+    category: "survival"
+    language: "en"
+    format: "kolibri"
+    size_mb: 3500
+    upstream_url: "https://studio.learningequality.org/en/channels/#/public"
+    description: "Vocational skills: carpentry, masonry, plumbing, electrical installations, and tools."
+    tags: ["kolibri", "vocational", "diy", "carpentry", "survival", "plumbing"]
+
+  - id: "kolibri_sikana_health_firstaid"
+    name: "Sikana - First Aid, Health & Emergency Preparedness"
+    category: "survival"
+    language: "en"
+    format: "kolibri"
+    size_mb: 1800
+    upstream_url: "https://studio.learningequality.org/en/channels/#/public"
+    description: "Emergency response: CPR, wound care, burn treatment, and preventive hygiene."
+    tags: ["kolibri", "health", "firstaid", "emergency", "survival"]
+
   - id: "wikihow_en_maxi"
     name: "WikiHow (Complete Illustrated Guide)"
     category: "survival"
@@ -526,6 +637,16 @@ resources:
   # --------------------------------------------------------------------------
   # 8. Literature & Entertainment
   # --------------------------------------------------------------------------
+  - id: "kolibri_storyweaver_multilingual"
+    name: "StoryWeaver & Global Digital Multilingual Library"
+    category: "fun"
+    language: "en"
+    format: "kolibri"
+    size_mb: 950
+    upstream_url: "https://studio.learningequality.org/en/channels/#/public"
+    description: "Illustrated stories and language learning readers in multiple world languages."
+    tags: ["kolibri", "literature", "multilingual", "languages", "stories"]
+
   - id: "standard_ebooks_top50"
     name: "Standard Ebooks Curated Classics (Top 50)"
     category: "fun"
