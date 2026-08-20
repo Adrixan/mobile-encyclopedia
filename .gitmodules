@@ -1,0 +1,3 @@
+[submodule ".github/copilot-instructions"]
+	path = .github/copilot-instructions
+	url = https://github.com/Adrixan/copilot-instructions.git

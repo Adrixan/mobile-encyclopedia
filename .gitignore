@@ -1,0 +1,14 @@
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDE / Editor Files
+.idea/
+*.swp
+*.swo
+*~
+
+# Scratch & Logs
+*.log
+scratch/
+tmp/
