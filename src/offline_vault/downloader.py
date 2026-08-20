@@ -85,6 +85,21 @@ def get_kiwix_library_map() -> Dict[str, str]:
 
 def resolve_upstream_url(url: str) -> str:
     """Dynamically resolve outdated or mirror URLs to the newest active endpoint."""
+    if "github.com/gchq/CyberChef" in url:
+        try:
+            req = urllib.request.Request(
+                "https://api.github.com/repos/gchq/CyberChef/releases/latest",
+                headers={"User-Agent": "OfflineVault/1.0"},
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                import json
+                data = json.loads(resp.read().decode())
+                for asset in data.get("assets", []):
+                    if asset.get("name", "").startswith("CyberChef_") and asset.get("name", "").endswith(".zip"):
+                        return asset.get("browser_download_url")
+        except Exception:
+            pass
+
     if "download.kiwix.org" in url:
         fn = url.split("/")[-1]
         base = re.sub(r"_\d{4}-\d{2}\.zim$", "", fn).replace(".zim", "")

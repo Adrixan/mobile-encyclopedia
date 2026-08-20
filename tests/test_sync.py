@@ -108,3 +108,40 @@ def test_sync_preserves_old_version_if_download_fails(tmp_path):
     # Old working version must be preserved!
     assert old_canonical.exists()
     assert old_canonical.read_text() == "working v1 content"
+
+
+def test_sync_unpacks_zip_archive_with_index_entrypoint(tmp_path):
+    import zipfile
+    vault_dir = tmp_path / "vault"
+    config = VaultConfig(vault_dir=str(vault_dir))
+    item = ResourceItem(
+        id="cyberchef_suite",
+        name="CyberChef Test",
+        category="dev",
+        language="en",
+        format="zip",
+        size_mb=75,
+        upstream_url="https://example.org/cyberchef.zip",
+    )
+    catalog = ResourceCatalog([item])
+    mgr = SyncManager(config, catalog)
+
+    # Mock download creating a valid zip with CyberChef_v11.html
+    def mock_zip_download(url, destination, **kwargs):
+        dest_path = Path(destination)
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(dest_path, "w") as z:
+            z.writestr("CyberChef_v11.4.0.html", "<html>CyberChef App</html>")
+            z.writestr("assets/style.css", "body { color: black; }")
+        return DownloadResult(url=url, destination=dest_path, success=True, bytes_downloaded=100)
+
+    mgr.engine.download = mock_zip_download
+
+    summary = mgr.sync_items(["cyberchef_suite"], force_update=True)
+    assert summary.completed == 1
+
+    extract_dir = vault_dir / "dev" / "cyberchef_suite"
+    assert extract_dir.is_dir()
+    assert (extract_dir / "index.html").exists()
+    assert (extract_dir / "assets" / "style.css").exists()
+

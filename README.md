@@ -40,6 +40,7 @@ When running Offline Vault on Android (or copying your offline vault from PC to 
 | **Literature & Books** | `.epub` | **KOReader** / **Librera** | [F-Droid (KOReader)](https://f-droid.org/packages/org.koreader.launcher.fdroid/) | `<vault>/fun/`, `<vault>/tutorials/` |
 | **Offline Vector Maps** | `.map` | **OsmAnd** / **Cruiser** | [F-Droid (OsmAnd~)](https://f-droid.org/packages/net.osmand.plus/) | `<vault>/maps/` |
 | **Developer Docsets & HTML** | `.tgz` / `.html` | **Awh** / **Mobile Browser** | [F-Droid (Awh)](https://f-droid.org/packages/de.fe1k.awh/) or `offline-vault serve` | `<vault>/dev/`, `<vault>/admin/` |
+| **Offline Web Apps (CyberChef)** | `.html` / `.zip` | **Chrome / Firefox / Browser** | Direct in Browser or `offline-vault serve` | `<vault>/dev/cyberchef_suite/` |
 
 ### Setting Up Kiwix on Android:
 1. Install **Kiwix Mobile** from F-Droid or Play Store.

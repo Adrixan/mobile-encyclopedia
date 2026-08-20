@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import tarfile
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Set
@@ -71,6 +73,30 @@ class SyncManager:
                     except Exception:
                         pass
 
+    def unpack_archive_if_needed(self, item: ResourceItem, file_path: Path) -> None:
+        """Extract zip/tar archives and create index.html entrypoints safely."""
+        if item.format == "zip" and zipfile.is_zipfile(file_path):
+            extract_dir = file_path.parent / item.id
+            extract_dir.mkdir(parents=True, exist_ok=True)
+            with zipfile.ZipFile(file_path, "r") as z:
+                for member in z.namelist():
+                    member_path = Path(member)
+                    # Security: ZipSlip protection
+                    if ".." in member_path.parts or member.startswith("/"):
+                        continue
+                    z.extract(member, extract_dir)
+
+            # Look for HTML entrypoint and create index.html
+            for html_file in extract_dir.glob("*.html"):
+                if html_file.name != "index.html":
+                    index_target = extract_dir / "index.html"
+                    if not index_target.exists():
+                        try:
+                            index_target.symlink_to(html_file.name)
+                        except Exception:
+                            shutil.copy2(html_file, index_target)
+                    break
+
     def sync_items(
         self,
         item_ids: List[str] | Set[str],
@@ -126,6 +152,9 @@ class SyncManager:
 
                 # 2. Atomically replace canonical destination
                 new_tmp_path.replace(dest)
+
+                # 3. Unpack archive if applicable (e.g. CyberChef)
+                self.unpack_archive_if_needed(item, dest)
 
                 completed += 1
                 total_bytes += dest.stat().st_size

@@ -218,6 +218,16 @@ resources:
     description: "Web application defense, auth, cryptography, injection, and API security."
     tags: ["dev", "security", "owasp"]
 
+  - id: "cyberchef_suite"
+    name: "CyberChef - The Cyber Swiss Army Knife (Offline Web App)"
+    category: "dev"
+    language: "en"
+    format: "zip"
+    size_mb: 75
+    upstream_url: "https://github.com/gchq/CyberChef/releases/download/v11.4.0/CyberChef_49d1a5634a67a3b806c6db0fdca7dcecb41a776c.zip"
+    description: "Full offline web app for encryption, encoding, compression, hashing, and data analysis."
+    tags: ["dev", "security", "crypto", "cyberchef", "tools", "encoding"]
+
   # --------------------------------------------------------------------------
   # 3. Interactive Tutorials & Courses (ZIM, HTML, & Kolibri LMS)
   # --------------------------------------------------------------------------
