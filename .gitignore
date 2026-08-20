@@ -12,3 +12,16 @@ Thumbs.db
 *.log
 scratch/
 tmp/
+
+# Python & Virtualenv
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+

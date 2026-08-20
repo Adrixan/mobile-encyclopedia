@@ -1,0 +1,18 @@
+{
+  "app_name": "Offline Vault",
+  "app_tagline": "Gestor de Conocimiento Offline Multiplataforma",
+  "vault_path": "Directorio del Depósito: {path}",
+  "free_space": "Espacio Disponible: {free}",
+  "selected_size": "Seleccionado: {size}",
+  "remaining_space": "Restante Proyectado: {remaining}",
+  "warning_low_space": "¡Advertencia: Espacio insuficiente en disco para los recursos seleccionados!",
+  "btn_sync": "Iniciar Sincronización",
+  "btn_filter": "Filtrar",
+  "btn_path": "Cambiar Ruta del Depósito",
+  "btn_quit": "Salir",
+  "status_ready": "Listo",
+  "status_downloading": "Descargando: {name} ({progress}%)",
+  "status_verifying": "Verificando {name}...",
+  "status_complete": "Sincronización Completa: {count} recursos actualizados.",
+  "status_error": "Error: {message}"
+}

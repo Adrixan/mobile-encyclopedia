@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "offline-vault"
+version = "0.1.0"
+description = "Cross-platform offline knowledge and resource synchronization manager for Linux and Android (Termux)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Adrixan" }
+]
+dependencies = [
+    "pyyaml>=6.0",
+    "textual>=0.80.0",
+    "rich>=13.0.0",
+    "requests>=2.31.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0"
+]
+
+[project.scripts]
+offline-vault = "offline_vault.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"offline_vault" = ["data/*.yaml", "locales/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

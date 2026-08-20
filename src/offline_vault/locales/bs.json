@@ -1,0 +1,18 @@
+{
+  "app_name": "Offline Vault",
+  "app_tagline": "Višeplatformski upravitelj offline znanja",
+  "vault_path": "Direktorij trezora: {path}",
+  "free_space": "Dostupan prostor: {free}",
+  "selected_size": "Odabrano: {size}",
+  "remaining_space": "Preostali prostor: {remaining}",
+  "warning_low_space": "Upozorenje: Nedovoljno prostora na disku za odabrane resurse!",
+  "btn_sync": "Pokreni sinhronizaciju",
+  "btn_filter": "Filter",
+  "btn_path": "Promijeni putanju trezora",
+  "btn_quit": "Izađi",
+  "status_ready": "Spreman",
+  "status_downloading": "Preuzimanje: {name} ({progress}%)",
+  "status_verifying": "Provjera {name}...",
+  "status_complete": "Sinhronizacija završena: {count} resursa ažurirano.",
+  "status_error": "Greška: {message}"
+}

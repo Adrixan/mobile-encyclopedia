@@ -1,0 +1,18 @@
+{
+  "app_name": "Offline Vault",
+  "app_tagline": "Cross-platform Offline Knowledge Manager",
+  "vault_path": "Vault Directory: {path}",
+  "free_space": "Available Space: {free}",
+  "selected_size": "Selected: {size}",
+  "remaining_space": "Projected Remaining: {remaining}",
+  "warning_low_space": "Warning: Insufficient disk space for selected resources!",
+  "btn_sync": "Start Sync",
+  "btn_filter": "Filter",
+  "btn_path": "Change Vault Path",
+  "btn_quit": "Quit",
+  "status_ready": "Ready",
+  "status_downloading": "Downloading: {name} ({progress}%)",
+  "status_verifying": "Verifying {name}...",
+  "status_complete": "Sync Complete: {count} resources updated.",
+  "status_error": "Error: {message}"
+}

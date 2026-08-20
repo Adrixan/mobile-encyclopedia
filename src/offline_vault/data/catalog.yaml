@@ -1,0 +1,632 @@
+# Offline Knowledge Catalog Definition
+# Comprehensive list of curated offline resources for Linux & Termux
+
+resources:
+  # --------------------------------------------------------------------------
+  # 1. Distro & System Administration
+  # --------------------------------------------------------------------------
+  - id: "opensuse_wiki_docs"
+    name: "openSUSE Wiki & Administration Documentation"
+    category: "admin"
+    language: "en"
+    format: "zim"
+    size_mb: 250
+    upstream_url: "https://download.kiwix.org/zim/other/opensuse_en_all_maxi.zim"
+    description: "Leap & Tumbleweed Admin, Security, YaST and Zypper guides."
+    tags: ["distro", "opensuse", "admin", "linux"]
+    target_subfolder: "zims"
+
+  - id: "archwiki_en"
+    name: "ArchWiki (Full Offline Archive)"
+    category: "admin"
+    language: "en"
+    format: "zim"
+    size_mb: 110
+    upstream_url: "https://download.kiwix.org/zim/other/archlinux_en_all_maxi.zim"
+    description: "In-depth troubleshooting, configurations, systemd, and services."
+    tags: ["distro", "arch", "admin", "linux"]
+    target_subfolder: "zims"
+
+  - id: "debian_admin_handbook"
+    name: "Debian Administrator's Handbook"
+    category: "admin"
+    language: "en"
+    format: "epub"
+    size_mb: 45
+    upstream_url: "https://debian-handbook.info/browse/en-US/stable/debian-handbook.epub"
+    description: "Production Linux sysadmin guide, networking, security, storage."
+    tags: ["distro", "debian", "admin", "linux"]
+    target_subfolder: "literature"
+
+  - id: "linux_ldp_admin_guides"
+    name: "Linux Documentation Project (LDP) Admin Guides"
+    category: "admin"
+    language: "en"
+    format: "tar"
+    size_mb: 25
+    upstream_url: "https://tldp.org/LDP/sag/sag.tar.gz"
+    description: "Classic Linux System & Network Administrator's Guides."
+    tags: ["admin", "linux", "networking"]
+    target_subfolder: "admin"
+
+  - id: "linux_hardening_cis"
+    name: "Linux Hardening & Security Recipes"
+    category: "admin"
+    language: "en"
+    format: "html"
+    size_mb: 25
+    upstream_url: "https://github.com/trimstray/the-practical-linux-hardening-guide/archive/refs/heads/master.tar.gz"
+    description: "Practical guide to hardening Linux systems, kernel parameters, and services."
+    tags: ["admin", "security", "hardening", "linux"]
+    target_subfolder: "admin"
+
+  - id: "windows_server_powershell_docs"
+    name: "Windows Server & PowerShell Administration Reference"
+    category: "admin"
+    language: "en"
+    format: "docset"
+    size_mb: 370
+    upstream_url: "https://go.zealdocs.org/d/sanfrancisco/PowerShell/latest"
+    description: "PowerShell core cmdlets, Active Directory, and Windows Server admin."
+    tags: ["admin", "windows", "powershell"]
+    target_subfolder: "docsets"
+
+  - id: "sysinternals_admin_manual"
+    name: "Sysinternals Administrator Utilities Manual"
+    category: "admin"
+    language: "en"
+    format: "html"
+    size_mb: 30
+    upstream_url: "https://raw.githubusercontent.com/MicrosoftDocs/sysinternals/main/sysinternals.zip"
+    description: "Troubleshooting guide for Process Explorer, Autoruns, and ProcMon."
+    tags: ["admin", "windows", "sysinternals"]
+    target_subfolder: "admin"
+
+  # --------------------------------------------------------------------------
+  # 2. Programming Languages, Databases & DevOps
+  # --------------------------------------------------------------------------
+  - id: "python_docset"
+    name: "Python 3 Standard Documentation"
+    category: "dev"
+    language: "en"
+    format: "docset"
+    size_mb: 25
+    upstream_url: "https://go.zealdocs.org/d/sanfrancisco/Python_3/latest"
+    description: "Official Python 3 library, tutorial, language specs, and standard types."
+    tags: ["dev", "python", "programming"]
+    target_subfolder: "docsets"
+
+  - id: "rust_docset"
+    name: "Rust Standard Library & Rust Book"
+    category: "dev"
+    language: "en"
+    format: "docset"
+    size_mb: 55
+    upstream_url: "https://go.zealdocs.org/d/sanfrancisco/Rust/latest"
+    description: "Rust standard library, core, alloc, and official Rust Book."
+    tags: ["dev", "rust", "programming"]
+    target_subfolder: "docsets"
+
+  - id: "cpp_reference_docset"
+    name: "C / C++ cppreference Documentation"
+    category: "dev"
+    language: "en"
+    format: "docset"
+    size_mb: 65
+    upstream_url: "https://go.zealdocs.org/d/sanfrancisco/C++/latest"
+    description: "Comprehensive C++11/14/17/20/23 language and standard headers."
+    tags: ["dev", "cpp", "c", "programming"]
+    target_subfolder: "docsets"
+
+  - id: "go_docset"
+    name: "Go Language & Standard Library"
+    category: "dev"
+    language: "en"
+    format: "docset"
+    size_mb: 35
+    upstream_url: "https://go.zealdocs.org/d/sanfrancisco/Go/latest"
+    description: "Go standard library packages, concurrency, and tooling specs."
+    tags: ["dev", "go", "golang", "programming"]
+    target_subfolder: "docsets"
+
+  - id: "php_manual_docset"
+    name: "PHP Manual with User Contributed Notes"
+    category: "dev"
+    language: "en"
+    format: "docset"
+    size_mb: 65
+    upstream_url: "https://go.zealdocs.org/d/sanfrancisco/PHP/latest"
+    description: "Complete PHP 8.x functions, classes, SPL, and user notes."
+    tags: ["dev", "php", "web", "programming"]
+    target_subfolder: "docsets"
+
+  - id: "javascript_mdn_docset"
+    name: "JavaScript MDN Reference & Web APIs"
+    category: "dev"
+    language: "en"
+    format: "docset"
+    size_mb: 120
+    upstream_url: "https://go.zealdocs.org/d/sanfrancisco/JavaScript/latest"
+    description: "Complete modern ECMAScript reference, DOM, fetch, and Web APIs."
+    tags: ["dev", "javascript", "web", "programming"]
+    target_subfolder: "docsets"
+
+  - id: "nodejs_docset"
+    name: "Node.js Core Documentation"
+    category: "dev"
+    language: "en"
+    format: "docset"
+    size_mb: 35
+    upstream_url: "https://go.zealdocs.org/d/sanfrancisco/NodeJS/latest"
+    description: "Node.js runtime APIs, streams, crypto, http, buffers, worker threads."
+    tags: ["dev", "nodejs", "javascript", "backend"]
+    target_subfolder: "docsets"
+
+  - id: "postgresql_docset"
+    name: "PostgreSQL Database Manual"
+    category: "dev"
+    language: "en"
+    format: "docset"
+    size_mb: 25
+    upstream_url: "https://go.zealdocs.org/d/sanfrancisco/PostgreSQL/latest"
+    description: "PostgreSQL SQL syntax, indexing, administration, performance tuning."
+    tags: ["dev", "database", "postgres", "sql"]
+    target_subfolder: "docsets"
+
+  - id: "sqlite_docset"
+    name: "SQLite Database Documentation & C API"
+    category: "dev"
+    language: "en"
+    format: "docset"
+    size_mb: 15
+    upstream_url: "https://go.zealdocs.org/d/sanfrancisco/SQLite/latest"
+    description: "SQLite SQL syntax, query planner, internal architecture, and C API."
+    tags: ["dev", "database", "sqlite", "sql"]
+    target_subfolder: "docsets"
+
+  - id: "docker_docset"
+    name: "Docker & Container CLI Reference"
+    category: "dev"
+    language: "en"
+    format: "docset"
+    size_mb: 45
+    upstream_url: "https://go.zealdocs.org/d/sanfrancisco/Docker/latest"
+    description: "Dockerfile specs, docker-compose syntax, CLI command reference."
+    tags: ["dev", "devops", "docker", "containers"]
+    target_subfolder: "docsets"
+
+  - id: "pro_git_book"
+    name: "Pro Git Book (2nd Edition)"
+    category: "dev"
+    language: "en"
+    format: "epub"
+    size_mb: 15
+    upstream_url: "https://github.com/progit/progit2/releases/download/2.1.433/progit.epub"
+    description: "Comprehensive Git book by Scott Chacon and Ben Straub."
+    tags: ["dev", "git", "vcs"]
+    target_subfolder: "literature"
+
+  - id: "nginx_apache_docset"
+    name: "Nginx & Apache Web Server Admin Reference"
+    category: "dev"
+    language: "en"
+    format: "docset"
+    size_mb: 20
+    upstream_url: "https://go.zealdocs.org/d/sanfrancisco/Nginx/latest"
+    description: "Reverse proxies, SSL/TLS configuration, caching, virtual hosts."
+    tags: ["dev", "webserver", "nginx", "apache"]
+    target_subfolder: "docsets"
+
+  - id: "networking_rfcs_cheatsheets"
+    name: "Networking, Subnetting & RFC Archive"
+    category: "dev"
+    language: "en"
+    format: "html"
+    size_mb: 60
+    upstream_url: "https://github.com/the-tcpdump-group/tcpdump-htdocs/archive/refs/heads/master.tar.gz"
+    description: "Core RFCs, TCP/IP fundamentals, CIDR subnetting reference."
+    tags: ["dev", "networking", "rfcs"]
+    target_subfolder: "admin"
+
+  - id: "owasp_cheat_sheet_series"
+    name: "OWASP Security Cheat Sheet Series"
+    category: "dev"
+    language: "en"
+    format: "html"
+    size_mb: 35
+    upstream_url: "https://github.com/OWASP/CheatSheetSeries/archive/refs/heads/master.tar.gz"
+    description: "Web application defense, auth, cryptography, injection, and API security."
+    tags: ["dev", "security", "owasp"]
+    target_subfolder: "admin"
+
+  # --------------------------------------------------------------------------
+  # 3. Developer Tutorials
+  # --------------------------------------------------------------------------
+  - id: "javascript_info_tutorial"
+    name: "Javascript.info Complete Offline Tutorial"
+    category: "tutorials"
+    language: "en"
+    format: "epub"
+    size_mb: 80
+    upstream_url: "https://github.com/javascript-tutorial/en.javascript.info/archive/refs/heads/master.tar.gz"
+    description: "Comprehensive JavaScript tutorial from language basics to advanced async."
+    tags: ["tutorials", "javascript", "web"]
+    target_subfolder: "literature"
+
+  - id: "mdn_learn_web_dev"
+    name: "MDN Learn Web Development Curriculum"
+    category: "tutorials"
+    language: "en"
+    format: "zim"
+    size_mb: 280
+    upstream_url: "https://download.kiwix.org/zim/other/mdn_en_learn_all_maxi.zim"
+    description: "Structured beginner-to-advanced web development curriculum."
+    tags: ["tutorials", "web", "html", "css", "javascript"]
+    target_subfolder: "zims"
+
+  - id: "freecodecamp_curriculum"
+    name: "FreeCodeCamp Interactive Offline Curriculum"
+    category: "tutorials"
+    language: "en"
+    format: "zim"
+    size_mb: 450
+    upstream_url: "https://download.kiwix.org/zim/other/freecodecamp_en_all_maxi.zim"
+    description: "Full-stack web development tutorials, algorithms, and data structures."
+    tags: ["tutorials", "coding", "web"]
+    target_subfolder: "zims"
+
+  # --------------------------------------------------------------------------
+  # 4. Multilingual Reference (8 Languages: EN, ES, BS, HR, SR, SL, FR, AR)
+  # --------------------------------------------------------------------------
+  - id: "wikipedia_en_top100k"
+    name: "Wikipedia English (Top 100k Articles)"
+    category: "wiki"
+    language: "en"
+    format: "zim"
+    size_mb: 5500
+    upstream_url: "https://download.kiwix.org/zim/wikipedia/wikipedia_en_top_maxi.zim"
+    description: "Top 100,000 most read Wikipedia articles in English with images."
+    tags: ["wiki", "encyclopedia", "english"]
+    target_subfolder: "zims"
+
+  - id: "wikipedia_en_nopic"
+    name: "Wikipedia English (Full Text-Only)"
+    category: "wiki"
+    language: "en"
+    format: "zim"
+    size_mb: 12000
+    upstream_url: "https://download.kiwix.org/zim/wikipedia/wikipedia_en_all_nopic.zim"
+    description: "Complete English Wikipedia (6.5M articles) without images."
+    tags: ["wiki", "encyclopedia", "english"]
+    target_subfolder: "zims"
+
+  - id: "wikimed_en_maxi"
+    name: "WikiMed Medical Encyclopedia (English)"
+    category: "wiki"
+    language: "en"
+    format: "zim"
+    size_mb: 1600
+    upstream_url: "https://download.kiwix.org/zim/wikipedia/wikimed_en_all_maxi.zim"
+    description: "Offline clinical medicine, pharmacology, symptoms, and emergency care."
+    tags: ["wiki", "medicine", "emergency"]
+    target_subfolder: "zims"
+
+  - id: "wikipedia_es_top"
+    name: "Wikipedia Spanish (Top Selection)"
+    category: "wiki"
+    language: "es"
+    format: "zim"
+    size_mb: 3200
+    upstream_url: "https://download.kiwix.org/zim/wikipedia/wikipedia_es_top_maxi.zim"
+    description: "Top Spanish Wikipedia articles with illustrations."
+    tags: ["wiki", "encyclopedia", "spanish"]
+    target_subfolder: "zims"
+
+  - id: "wiktionary_es_all"
+    name: "Wiktionary Spanish (Diccionario)"
+    category: "wiki"
+    language: "es"
+    format: "zim"
+    size_mb: 1200
+    upstream_url: "https://download.kiwix.org/zim/wiktionary/wiktionary_es_all_maxi.zim"
+    description: "Comprehensive Spanish dictionary and linguistic reference."
+    tags: ["wiki", "dictionary", "spanish"]
+    target_subfolder: "zims"
+
+  - id: "wikipedia_fr_top"
+    name: "Wikipedia French (Top Selection)"
+    category: "wiki"
+    language: "fr"
+    format: "zim"
+    size_mb: 3800
+    upstream_url: "https://download.kiwix.org/zim/wikipedia/wikipedia_fr_top_maxi.zim"
+    description: "Top French Wikipedia articles with illustrations."
+    tags: ["wiki", "encyclopedia", "french"]
+    target_subfolder: "zims"
+
+  - id: "wikipedia_ar_top"
+    name: "Wikipedia Arabic (Top Selection)"
+    category: "wiki"
+    language: "ar"
+    format: "zim"
+    size_mb: 1800
+    upstream_url: "https://download.kiwix.org/zim/wikipedia/wikipedia_ar_top_maxi.zim"
+    description: "Top Arabic Wikipedia articles with illustrations."
+    tags: ["wiki", "encyclopedia", "arabic"]
+    target_subfolder: "zims"
+
+  - id: "wikipedia_bs_all"
+    name: "Wikipedia Bosnian (Full Archive)"
+    category: "wiki"
+    language: "bs"
+    format: "zim"
+    size_mb: 650
+    upstream_url: "https://download.kiwix.org/zim/wikipedia/wikipedia_bs_all_maxi.zim"
+    description: "Complete Bosnian Wikipedia archive."
+    tags: ["wiki", "encyclopedia", "bosnian"]
+    target_subfolder: "zims"
+
+  - id: "wiktionary_bs_all"
+    name: "Wiktionary Bosnian (Rječnik)"
+    category: "wiki"
+    language: "bs"
+    format: "zim"
+    size_mb: 90
+    upstream_url: "https://download.kiwix.org/zim/wiktionary/wiktionary_bs_all_maxi.zim"
+    description: "Bosnian language dictionary and translations."
+    tags: ["wiki", "dictionary", "bosnian"]
+    target_subfolder: "zims"
+
+  - id: "wikipedia_hr_all"
+    name: "Wikipedia Croatian (Full Archive)"
+    category: "wiki"
+    language: "hr"
+    format: "zim"
+    size_mb: 1800
+    upstream_url: "https://download.kiwix.org/zim/wikipedia/wikipedia_hr_all_maxi.zim"
+    description: "Complete Croatian Wikipedia archive with illustrations."
+    tags: ["wiki", "encyclopedia", "croatian"]
+    target_subfolder: "zims"
+
+  - id: "wikipedia_sr_all"
+    name: "Wikipedia Serbian (Full Archive)"
+    category: "wiki"
+    language: "sr"
+    format: "zim"
+    size_mb: 2400
+    upstream_url: "https://download.kiwix.org/zim/wikipedia/wikipedia_sr_all_maxi.zim"
+    description: "Complete Serbian Wikipedia archive (Cyrillic & Latin)."
+    tags: ["wiki", "encyclopedia", "serbian"]
+    target_subfolder: "zims"
+
+  - id: "wikipedia_sl_all"
+    name: "Wikipedia Slovenian (Full Archive)"
+    category: "wiki"
+    language: "sl"
+    format: "zim"
+    size_mb: 1200
+    upstream_url: "https://download.kiwix.org/zim/wikipedia/wikipedia_sl_all_maxi.zim"
+    description: "Complete Slovenian Wikipedia archive with illustrations."
+    tags: ["wiki", "encyclopedia", "slovenian"]
+    target_subfolder: "zims"
+
+  # --------------------------------------------------------------------------
+  # 5. Practical Knowledge, Survival & Engineering
+  # --------------------------------------------------------------------------
+  - id: "wikihow_en_maxi"
+    name: "WikiHow (Complete Illustrated Guide)"
+    category: "survival"
+    language: "en"
+    format: "zim"
+    size_mb: 8500
+    upstream_url: "https://download.kiwix.org/zim/wikihow/wikihow_en_all_maxi.zim"
+    description: "Practical step-by-step everyday guides, repairs, crafts, and DIY."
+    tags: ["survival", "practical", "diy", "wikihow"]
+    target_subfolder: "zims"
+
+  - id: "ifixit_en_maxi"
+    name: "iFixit Repair Manuals (Complete)"
+    category: "survival"
+    language: "en"
+    format: "zim"
+    size_mb: 2800
+    upstream_url: "https://download.kiwix.org/zim/other/ifixit_en_all_maxi.zim"
+    description: "Hardware, electronics, appliances, and vehicle repair guides."
+    tags: ["survival", "repair", "hardware", "ifixit"]
+    target_subfolder: "zims"
+
+  - id: "where_there_is_no_doctor"
+    name: "Where There Is No Doctor / Hesperian Health Manuals"
+    category: "survival"
+    language: "en"
+    format: "epub"
+    size_mb: 80
+    upstream_url: "https://hesperian.org/wp-content/uploads/pdf/en_wtnd_2022/wtnd_2022_full.epub"
+    description: "Essential offline healthcare manual for remote and emergency settings."
+    tags: ["survival", "medicine", "emergency"]
+    target_subfolder: "literature"
+
+  - id: "cd3wd_appropedia"
+    name: "CD3WD / Appropedia Appropriate Technology Archive"
+    category: "survival"
+    language: "en"
+    format: "zim"
+    size_mb: 2100
+    upstream_url: "https://download.kiwix.org/zim/other/appropedia_en_all_maxi.zim"
+    description: "Low-tech engineering, sanitation, agriculture, energy, and construction."
+    tags: ["survival", "offgrid", "agriculture"]
+    target_subfolder: "zims"
+
+  - id: "ham_radio_emergency_handbook"
+    name: "Ham & Amateur Radio Emergency Communication Manual"
+    category: "survival"
+    language: "en"
+    format: "epub"
+    size_mb: 55
+    upstream_url: "https://raw.githubusercontent.com/emergency-radio/manuals/master/ham_emergency_guide.epub"
+    description: "HF/VHF emergency frequencies, antenna construction, Morse code."
+    tags: ["survival", "radio", "communications"]
+    target_subfolder: "literature"
+
+  - id: "food_preservation_seed_saving"
+    name: "Food Preservation & Seed Saving Guide (USDA/FAO)"
+    category: "survival"
+    language: "en"
+    format: "epub"
+    size_mb: 95
+    upstream_url: "https://nchfp.uga.edu/publications/usda/GUIDE01_HomeCan_rev0715.epub"
+    description: "Canning, fermentation, root cellaring, and seed preservation."
+    tags: ["survival", "food", "agriculture"]
+    target_subfolder: "literature"
+
+  - id: "who_water_sanitation_guide"
+    name: "WHO Water Sanitation & Emergency Disinfection"
+    category: "survival"
+    language: "en"
+    format: "epub"
+    size_mb: 35
+    upstream_url: "https://apps.who.int/iris/bitstream/handle/10665/43840/9789241547406_eng.epub"
+    description: "Water purification, chemical disinfection, solar stills, filtration."
+    tags: ["survival", "water", "health"]
+    target_subfolder: "literature"
+
+  - id: "engineering_toolbox_offline"
+    name: "Engineering ToolBox & Materials Reference"
+    category: "survival"
+    language: "en"
+    format: "zim"
+    size_mb: 180
+    upstream_url: "https://download.kiwix.org/zim/other/engineeringtoolbox_en_all_maxi.zim"
+    description: "Wire gauge tables, material tolerances, fluid dynamics, stress ratings."
+    tags: ["engineering", "science", "tables"]
+    target_subfolder: "zims"
+
+  - id: "pauls_online_math_notes"
+    name: "Paul's Online Math Notes (Calculus & Linear Algebra)"
+    category: "survival"
+    language: "en"
+    format: "epub"
+    size_mb: 65
+    upstream_url: "https://tutorial.math.lamar.edu/downloads/Cal1/CalcI_Complete.epub"
+    description: "Calculus I-III, Differential Equations, and Linear Algebra reference."
+    tags: ["science", "mathematics", "formulas"]
+    target_subfolder: "literature"
+
+  # --------------------------------------------------------------------------
+  # 6. Geospatial & Offline Navigation
+  # --------------------------------------------------------------------------
+  - id: "osm_vector_map_austria"
+    name: "OpenStreetMap Vector Map (Austria & Central Europe)"
+    category: "maps"
+    language: "en"
+    format: "map"
+    size_mb: 450
+    upstream_url: "https://download.bbbike.org/osm/bbbike/Graz/Graz.map"
+    description: "Mapsforge vector map file for offline navigation in OsmAnd / Cruiser."
+    tags: ["maps", "osm", "geospatial"]
+    target_subfolder: "maps"
+
+  - id: "global_city_airport_directory"
+    name: "Global World City & Airport Directory"
+    category: "maps"
+    language: "en"
+    format: "html"
+    size_mb: 15
+    upstream_url: "https://raw.githubusercontent.com/datasets/world-cities/master/data/world-cities.json"
+    description: "Offline database of coordinates, country codes, timezones, elevation."
+    tags: ["maps", "directory", "geospatial"]
+    target_subfolder: "maps"
+
+  # --------------------------------------------------------------------------
+  # 7. Community Q&A
+  # --------------------------------------------------------------------------
+  - id: "stackoverflow_top_posts"
+    name: "Stack Overflow (Top 1M Answered Questions)"
+    category: "qna"
+    language: "en"
+    format: "zim"
+    size_mb: 4500
+    upstream_url: "https://download.kiwix.org/zim/stack_exchange/stackoverflow.com_en_top_maxi.zim"
+    description: "Highest rated programming solutions and answers across all tags."
+    tags: ["qna", "stackoverflow", "programming"]
+    target_subfolder: "zims"
+
+  - id: "unix_linux_stackexchange"
+    name: "Unix & Linux Stack Exchange Archive"
+    category: "qna"
+    language: "en"
+    format: "zim"
+    size_mb: 750
+    upstream_url: "https://download.kiwix.org/zim/stack_exchange/unix.stackexchange.com_en_all_maxi.zim"
+    description: "Sysadmin, shell scripting, POSIX, and kernel problem solving."
+    tags: ["qna", "linux", "unix", "sysadmin"]
+    target_subfolder: "zims"
+
+  - id: "askubuntu_stackexchange"
+    name: "Ask Ubuntu Stack Exchange Archive"
+    category: "qna"
+    language: "en"
+    format: "zim"
+    size_mb: 1800
+    upstream_url: "https://download.kiwix.org/zim/stack_exchange/askubuntu.com_en_all_maxi.zim"
+    description: "Desktop, package management, driver, and server solutions."
+    tags: ["qna", "ubuntu", "linux"]
+    target_subfolder: "zims"
+
+  # --------------------------------------------------------------------------
+  # 8. Literature & Entertainment
+  # --------------------------------------------------------------------------
+  - id: "standard_ebooks_top50"
+    name: "Standard Ebooks Curated Classics (Top 50)"
+    category: "fun"
+    language: "en"
+    format: "epub"
+    size_mb: 180
+    upstream_url: "https://standardebooks.org/feeds/opds/all"
+    description: "Beautifully typeset classics: philosophy, literature, history."
+    tags: ["fun", "books", "literature", "classics"]
+    target_subfolder: "literature"
+
+  - id: "multilingual_literature_classics"
+    name: "Multilingual Literature Classics (BS, HR, SR, ES, FR, AR)"
+    category: "fun"
+    language: "bs"
+    format: "epub"
+    size_mb: 120
+    upstream_url: "https://www.gutenberg.org/cache/epub/feeds/today.epub"
+    description: "Curated public domain literature in target foreign languages."
+    tags: ["fun", "books", "multilingual"]
+    target_subfolder: "literature"
+
+  - id: "xkcd_complete_comics"
+    name: "XKCD Complete Comics Archive"
+    category: "fun"
+    language: "en"
+    format: "zim"
+    size_mb: 380
+    upstream_url: "https://download.kiwix.org/zim/other/xkcd_en_all_maxi.zim"
+    description: "All XKCD strips with hover alt-text and transcripts."
+    tags: ["fun", "comics", "xkcd"]
+    target_subfolder: "zims"
+
+  - id: "smbc_dinosaur_comics"
+    name: "SMBC & Science Webcomics Archive"
+    category: "fun"
+    language: "en"
+    format: "zim"
+    size_mb: 450
+    upstream_url: "https://download.kiwix.org/zim/other/smbc_en_all_maxi.zim"
+    description: "Saturday Morning Breakfast Cereal offline collection."
+    tags: ["fun", "comics", "smbc"]
+    target_subfolder: "zims"
+
+  - id: "interactive_fiction_adventures"
+    name: "Interactive Fiction Classic Text Adventures"
+    category: "fun"
+    language: "en"
+    format: "html"
+    size_mb: 45
+    upstream_url: "https://ifarchive.org/if-archive/games/zcode/zcode.zip"
+    description: "Classic Z-Machine story files and text adventures."
+    tags: ["fun", "games", "interactive-fiction"]
+    target_subfolder: "literature"
