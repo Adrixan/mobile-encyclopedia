@@ -19,6 +19,7 @@ from textual.widgets import (
     Header,
     Input,
     Label,
+    Markdown,
     ProgressBar,
     Static,
 )
@@ -180,6 +181,90 @@ class PathDialog(ModalScreen[Optional[str]]):
         self.dismiss(None)
 
 
+class HelpScreen(ModalScreen[None]):
+    """Modal screen displaying comprehensive usage guide and reader setup instructions."""
+
+    DEFAULT_CSS = """
+    HelpScreen {
+        align: center middle;
+    }
+    #help_box {
+        width: 88;
+        height: 85%;
+        border: thick $accent;
+        background: $surface;
+        padding: 1 2;
+    }
+    #help_scroll {
+        height: 1fr;
+        margin: 1 0;
+    }
+    """
+
+    HELP_MARKDOWN = """
+# 📚 Offline Knowledge Vault Guide
+
+### ⌨️ TUI Keyboard Controls & Shortcuts
+- **Space**: Toggle selection of highlighted item
+- **S**: Start synchronization of selected items
+- **P**: Set / Change Vault Path (Presets: `~/offline_vault`, `/sdcard/Download/offline_vault`)
+- **A**: Select all visible resources
+- **C**: Clear all selections
+- **F** / **/**: Focus search & filter bar
+- **H** / **?**: Open this Help & Reader Guide
+- **Q**: Quit
+
+---
+
+### 📂 File Formats & Destination Folders
+Resources are stored without volatile version strings directly in category folders:
+- **`admin/`**, **`wiki/`**, **`survival/`**, **`fun/`** (`.zim`): Offline compressed wikis and encyclopedias.
+- **`tutorials/kolibri/`** (`kolibri`): Interactive courses, PhET simulations, quizzes, and mastery tracking.
+- **`dev/`** (`.tgz` / `docset`): Kapeli Dash/Zeal API docsets (Python, Rust, C++, Go, PHP, JS, PostgreSQL).
+- **`fun/`**, **`tutorials/`** (`.epub`): Standard Ebooks, Pro Git, javascript.info.
+- **`maps/`** (`.map`): Mapsforge vector maps for OsmAnd & Cruiser.
+
+---
+
+### 📱 Android Reader Apps Setup
+
+| Format | Recommended App | Download Link | Vault Path |
+| :--- | :--- | :--- | :--- |
+| **`.zim`** | **Kiwix Mobile** | F-Droid / Play Store | `<vault>/wiki/`, `<vault>/admin/`, `<vault>/fun/` |
+| **`kolibri`** | **Kolibri Android App** | F-Droid / Play Store | `<vault>/tutorials/kolibri/` |
+| **`.epub`** | **KOReader** / **Librera** | F-Droid | `<vault>/fun/`, `<vault>/tutorials/` |
+| **`.map`** | **OsmAnd** / **Cruiser** | F-Droid / Play Store | `<vault>/maps/` |
+| **`docset`** | **Awh** / **Mobile Browser** | F-Droid | `<vault>/dev/` |
+
+**How to Open Kiwix on Android**:
+1. Install **Kiwix Mobile** from F-Droid or Play Store.
+2. Open Kiwix → Menu ☰ → **Device Storage** → select `/sdcard/Download/offline_vault/`.
+
+**How to Open Kolibri on Android**:
+1. Install **Kolibri Android App** from F-Droid or Play Store.
+2. Go to **Device** → **Channels** → **Import** → select `/sdcard/Download/offline_vault/tutorials/kolibri/`.
+3. Or tap **Import from Local Network** to sync peer-to-peer from your PC over Wi-Fi!
+
+---
+
+### 💻 Local Desktop Serving
+- `offline-vault serve --kolibri`: Launch Kolibri LMS at `http://localhost:8080`
+- `offline-vault serve --kiwix`: Launch Kiwix server at `http://localhost:8000`
+- `offline-vault serve --static`: Launch static HTTP doc server at `http://localhost:8000`
+"""
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="help_box"):
+            with VerticalScroll(id="help_scroll"):
+                yield Markdown(self.HELP_MARKDOWN)
+            with Horizontal():
+                yield Button("Close (Esc / Enter)", variant="primary", id="btn_close_help")
+
+    @on(Button.Pressed, "#btn_close_help")
+    def on_close(self) -> None:
+        self.dismiss(None)
+
+
 class SyncScreen(ModalScreen[None]):
     """Modal screen displaying live download and indexing progress."""
 
@@ -283,6 +368,9 @@ class OfflineVaultApp(App):
     #btn_set_path {
         margin-right: 1;
     }
+    #btn_top_help {
+        margin-right: 1;
+    }
     #budget_bar {
         background: $panel;
         border: round $accent;
@@ -316,6 +404,8 @@ class OfflineVaultApp(App):
         Binding("space", "toggle_row", "Toggle Item"),
         Binding("s", "start_sync", "Start Sync"),
         Binding("p", "change_path", "Set Path"),
+        Binding("h", "show_help", "Help"),
+        Binding("?", "show_help", "Help"),
         Binding("a", "select_all", "Select All"),
         Binding("c", "clear_all", "Clear"),
         Binding("f", "focus_search", "Search"),
@@ -333,11 +423,12 @@ class OfflineVaultApp(App):
         yield Header(show_clock=True)
         with Horizontal(id="top_vault_bar"):
             yield Label(f"📁 Vault Location: {self.config.vault_dir}", id="vault_info_bar")
-            yield Button("📂 Set Vault Location (P)", variant="warning", id="btn_set_path")
+            yield Button("📂 Set Path (P)", variant="warning", id="btn_set_path")
+            yield Button("❓ Help (H)", variant="default", id="btn_top_help")
             yield Button("⚡ Start Sync (S)", variant="success", id="btn_top_sync")
         yield BudgetBarWidget(id="budget_bar")
         with Horizontal(id="filter_container"):
-            yield Input(placeholder="Filter (e.g. opensuse, lang:bs, admin)...", id="search_input")
+            yield Input(placeholder="Filter (e.g. opensuse, lang:bs, admin, kolibri)...", id="search_input")
             with Horizontal(id="category_bar"):
                 yield Button("All", variant="primary", id="cat_all")
                 yield Button("Admin", variant="default", id="cat_admin")
@@ -398,6 +489,10 @@ class OfflineVaultApp(App):
     def on_btn_set_path_pressed(self) -> None:
         self.action_change_path()
 
+    @on(Button.Pressed, "#btn_top_help")
+    def on_btn_top_help_pressed(self) -> None:
+        self.action_show_help()
+
     @on(Button.Pressed, "#btn_top_sync")
     def on_btn_top_sync_pressed(self) -> None:
         self.action_start_sync()
@@ -434,6 +529,9 @@ class OfflineVaultApp(App):
 
     def action_focus_search(self) -> None:
         self.query_one("#search_input", Input).focus()
+
+    def action_show_help(self) -> None:
+        self.push_screen(HelpScreen())
 
     def action_change_path(self) -> None:
         def on_path_selected(new_path: Optional[str]) -> None:
