@@ -109,7 +109,7 @@ class DownloadProgress:
     destination: Path
     downloaded_bytes: int
     total_bytes: Optional[int]
-    speed_bps: float
+    speed_text: str
     percent: float
 
 
@@ -182,12 +182,13 @@ class DownloaderEngine:
         tmp_path: Path,
         progress_callback: Optional[Callable[[DownloadProgress], None]],
     ) -> DownloadResult:
-        """Download using aria2c with safe argument vector (no shell=True)."""
+        """Download using aria2c with live line streaming for immediate feedback."""
         cmd = [
             "aria2c",
             "--allow-overwrite=true",
             "--auto-file-renaming=false",
             "--follow-metalink=mem",
+            "--file-allocation=none",
             "--user-agent=OfflineVault/1.0",
             f"--max-connection-per-server={self.split_connections}",
             f"--split={self.split_connections}",
@@ -201,13 +202,38 @@ class DownloaderEngine:
         ]
 
         try:
-            process = subprocess.run(
+            process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 text=True,
-                check=False,
+                bufsize=1,
             )
+
+            progress_re = re.compile(r"([0-9.]+\w+)/([0-9.]+\w+)\((\d+)%\).*?DL:([^\s\]]+)")
+
+            if process.stdout:
+                while True:
+                    line = process.stdout.readline()
+                    if not line and process.poll() is not None:
+                        break
+                    if "%" in line:
+                        match = progress_re.search(line)
+                        if match and progress_callback:
+                            pct = float(match.group(3))
+                            speed = match.group(4)
+                            progress_callback(
+                                DownloadProgress(
+                                    url=url,
+                                    destination=dest_path,
+                                    downloaded_bytes=0,
+                                    total_bytes=None,
+                                    speed_text=speed,
+                                    percent=pct,
+                                )
+                            )
+
+            process.wait()
 
             if process.returncode == 0 and tmp_path.exists():
                 tmp_path.replace(dest_path)
@@ -219,7 +245,7 @@ class DownloaderEngine:
                             destination=dest_path,
                             downloaded_bytes=final_size,
                             total_bytes=final_size,
-                            speed_bps=0.0,
+                            speed_text="Done",
                             percent=100.0,
                         )
                     )
@@ -233,7 +259,7 @@ class DownloaderEngine:
                 url=url,
                 destination=dest_path,
                 success=False,
-                error_message=f"aria2c exited with code {process.returncode}: {process.stderr}",
+                error_message=f"aria2c exited with code {process.returncode}",
             )
         except Exception as e:
             return DownloadResult(
@@ -308,13 +334,14 @@ class DownloaderEngine:
                                 if total_bytes and total_bytes > 0
                                 else 0.0
                             )
+                            speed_str = f"{speed / (1024*1024):.1f}MB/s" if speed > 0 else ""
                             progress_callback(
                                 DownloadProgress(
                                     url=url,
                                     destination=dest_path,
                                     downloaded_bytes=downloaded,
                                     total_bytes=total_bytes,
-                                    speed_bps=speed,
+                                    speed_text=speed_str,
                                     percent=percent,
                                 )
                             )

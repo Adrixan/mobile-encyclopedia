@@ -229,9 +229,10 @@ class SyncScreen(ModalScreen[None]):
         completed_count = 0
 
         def on_item_progress(item: ResourceItem, p: DownloadProgress) -> None:
+            speed_info = f" [cyan]({p.speed_text})[/cyan]" if p.speed_text else ""
             self.app.call_from_thread(
                 status_lbl.update,
-                f"Downloading to [magenta]{item.category}/[/magenta]: [bold]{item.name}[/bold] ({p.percent:.1f}%)"
+                f"Downloading to [magenta]{item.category}/[/magenta]: [bold]{item.name}[/bold] ({p.percent:.1f}%){speed_info}"
             )
             self.app.call_from_thread(item_bar.update, progress=p.percent)
 
