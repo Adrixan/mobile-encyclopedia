@@ -41,3 +41,14 @@ def test_us5_1_cli_status_command(tmp_path, capsys):
     captured = capsys.readouterr()
     assert "Vault Directory" in captured.out
     assert "Available Disk Space" in captured.out
+
+
+def test_cli_serve_subcommand_routes_to_static_server(tmp_path):
+    from unittest.mock import patch
+    with patch("offline_vault.server.run_static_server", return_value=0) as mock_static:
+        ret = run_cli(["serve", "--static", "--port", "9090", "--vault-dir", str(tmp_path)])
+        assert ret == 0
+        mock_static.assert_called_once()
+        _, kwargs = mock_static.call_args
+        assert kwargs["port"] == 9090
+        assert kwargs["vault_dir"] == tmp_path.resolve()

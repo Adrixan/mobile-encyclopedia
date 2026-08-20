@@ -161,10 +161,11 @@ offline-vault sync --id cyberchef_suite --id it_tools_suite --id circuitjs_simul
 # Force update and prune old versions
 offline-vault sync --force --id cyberchef_suite
 
-# Launch local servers
+# Launch local servers across LAN/Wi-Fi
+offline-vault serve --static    # Multi-threaded portal & web apps server at http://localhost:8000
 offline-vault serve --kolibri   # Starts Kolibri LMS at http://localhost:8080
 offline-vault serve --kiwix     # Starts Kiwix ZIM server at http://localhost:8000
-offline-vault serve --static    # Starts static HTTP server at http://localhost:8000
+offline-vault serve --host 0.0.0.0 --port 8080   # Custom host and port for intranet hotspot sharing
 ```
 
 ---
