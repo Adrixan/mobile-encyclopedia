@@ -218,16 +218,6 @@ resources:
     description: "Web application defense, auth, cryptography, injection, and API security."
     tags: ["dev", "security", "owasp"]
 
-  - id: "cyberchef_suite"
-    name: "CyberChef - The Cyber Swiss Army Knife (Offline Web App)"
-    category: "dev"
-    language: "en"
-    format: "zip"
-    size_mb: 75
-    upstream_url: "https://github.com/gchq/CyberChef/releases/download/v11.4.0/CyberChef_49d1a5634a67a3b806c6db0fdca7dcecb41a776c.zip"
-    description: "Full offline web app for encryption, encoding, compression, hashing, and data analysis."
-    tags: ["dev", "security", "crypto", "cyberchef", "tools", "encoding"]
-
   # --------------------------------------------------------------------------
   # 3. Interactive Tutorials & Courses (ZIM, HTML, & Kolibri LMS)
   # --------------------------------------------------------------------------
@@ -706,3 +696,96 @@ resources:
     upstream_url: "https://github.com/the-tcpdump-group/tcpdump-htdocs/archive/refs/heads/master.tar.gz"
     description: "Classic Z-Machine story files and text adventures."
     tags: ["fun", "games", "interactive-fiction"]
+
+  # --------------------------------------------------------------------------
+  # 9. Offline Web Applications & Interactive Tools (tools)
+  # --------------------------------------------------------------------------
+  - id: "cyberchef_suite"
+    name: "CyberChef - The Cyber Swiss Army Knife (Offline Web App)"
+    category: "tools"
+    language: "en"
+    format: "zip"
+    size_mb: 75
+    upstream_url: "https://github.com/gchq/CyberChef/releases/download/v11.4.0/CyberChef_49d1a5634a67a3b806c6db0fdca7dcecb41a776c.zip"
+    description: "Complete offline suite for encryption, decoding, compression, regex, and data pipelines."
+    tags: ["tools", "security", "crypto", "cyberchef", "encoding", "analysis"]
+
+  - id: "it_tools_suite"
+    name: "IT-Tools - 80+ Developer & Sysadmin Web Utilities"
+    category: "tools"
+    language: "en"
+    format: "zip"
+    size_mb: 40
+    upstream_url: "https://github.com/CorentinTh/it-tools/releases/download/v2024.10.22-7ca5933/it-tools-2024.10.22-7ca5933.zip"
+    description: "80+ client-side developer utilities: subnet calculator, chmod, cron, JWT, JSON/YAML, regex."
+    tags: ["tools", "dev", "sysadmin", "networking", "converters", "utilities"]
+
+  - id: "circuitjs_simulator"
+    name: "CircuitJS1 (Falstad Interactive Electronic Circuit Simulator)"
+    category: "tools"
+    language: "en"
+    format: "tar"
+    size_mb: 15
+    upstream_url: "https://github.com/pfalstad/circuitjs1/archive/refs/heads/master.tar.gz"
+    description: "Real-time interactive electronic circuit simulation (op-amps, 555 timers, MOSFETs, RLC, logic gates)."
+    tags: ["tools", "electronics", "circuits", "physics", "simulation", "engineering"]
+
+  - id: "drawio_offline_suite"
+    name: "Draw.io (diagrams.net) Offline Blueprint & Diagramming Suite"
+    category: "tools"
+    language: "en"
+    format: "tar"
+    size_mb: 65
+    upstream_url: "https://github.com/jgraph/drawio/archive/refs/heads/master.tar.gz"
+    description: "Standalone diagramming for cloud architectures, network topologies, UML, schematics, and flowcharts."
+    tags: ["tools", "diagrams", "architecture", "design", "schematics", "sysadmin"]
+
+  - id: "sqlime_sqlite_studio"
+    name: "SQLime (In-Browser SQLite WASM Database Studio & Query Runner)"
+    category: "tools"
+    language: "en"
+    format: "tar"
+    size_mb: 12
+    upstream_url: "https://github.com/nalgeon/sqlime/archive/refs/heads/main.tar.gz"
+    description: "Client-side SQLite database editor and query tester powered by WebAssembly."
+    tags: ["tools", "database", "sqlite", "sql", "dev", "wasm"]
+
+  - id: "ptable_periodic_interactive"
+    name: "Ptable Interactive Periodic Table of the Elements"
+    category: "tools"
+    language: "en"
+    format: "tar"
+    size_mb: 12
+    upstream_url: "https://github.com/Bowserinator/Periodic-Table-JSON/archive/refs/heads/master.tar.gz"
+    description: "Dynamic periodic table with 3D electron orbitals, isotope half-lives, and element properties."
+    tags: ["tools", "chemistry", "science", "periodic-table", "physics", "materials"]
+
+  - id: "geogebra_math_grapher"
+    name: "FunctionPlot & MathLive (2D/3D Calculus & Algebra Grapher)"
+    category: "tools"
+    language: "en"
+    format: "tar"
+    size_mb: 25
+    upstream_url: "https://github.com/mauriciopoppe/function-plot/archive/refs/heads/master.tar.gz"
+    description: "Interactive function plotting, derivative slopes, integration curves, and vector visualizations."
+    tags: ["tools", "math", "calculus", "algebra", "graphing", "stem"]
+
+  - id: "suncalc_solar_planner"
+    name: "SunCalc (Solar Position, Azimuth & Ephemeris Calculator)"
+    category: "tools"
+    language: "en"
+    format: "tar"
+    size_mb: 5
+    upstream_url: "https://github.com/mourner/suncalc/archive/refs/heads/master.tar.gz"
+    description: "Astronomical solar & lunar position calculator for off-grid solar alignment and orienteering."
+    tags: ["tools", "solar", "astronomy", "survival", "navigation", "offgrid"]
+
+  - id: "excalidraw_whiteboard"
+    name: "Excalidraw Offline Virtual Whiteboard & Architecture Sketcher"
+    category: "tools"
+    language: "en"
+    format: "tar"
+    size_mb: 35
+    upstream_url: "https://github.com/excalidraw/excalidraw/archive/refs/heads/master.tar.gz"
+    description: "Virtual hand-drawn sketching whiteboard for concept maps, wireframes, and architecture drafts."
+    tags: ["tools", "sketching", "whiteboard", "design", "wireframes", "notes"]

@@ -117,7 +117,7 @@ def test_sync_unpacks_zip_archive_with_index_entrypoint(tmp_path):
     item = ResourceItem(
         id="cyberchef_suite",
         name="CyberChef Test",
-        category="dev",
+        category="tools",
         language="en",
         format="zip",
         size_mb=75,
@@ -140,7 +140,7 @@ def test_sync_unpacks_zip_archive_with_index_entrypoint(tmp_path):
     summary = mgr.sync_items(["cyberchef_suite"], force_update=True)
     assert summary.completed == 1
 
-    extract_dir = vault_dir / "dev" / "cyberchef_suite"
+    extract_dir = vault_dir / "tools" / "cyberchef_suite"
     assert extract_dir.is_dir()
     assert (extract_dir / "index.html").exists()
     assert (extract_dir / "assets" / "style.css").exists()

@@ -12,7 +12,7 @@ import yaml
 
 ALLOWED_SCHEMES = {"https"}
 VALID_FORMATS = {"zim", "docset", "map", "epub", "html", "tar", "zip", "kolibri"}
-VALID_CATEGORIES = {"admin", "dev", "tutorials", "wiki", "survival", "maps", "qna", "fun"}
+VALID_CATEGORIES = {"admin", "dev", "tutorials", "wiki", "survival", "maps", "qna", "fun", "tools"}
 
 
 def get_default_catalog_file() -> Path:

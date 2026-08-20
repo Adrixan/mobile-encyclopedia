@@ -78,3 +78,14 @@ def test_us2_1_calculate_selected_size():
     selected_ids = [catalog.items[0].id, catalog.items[1].id]
     expected_size = catalog.items[0].size_mb + catalog.items[1].size_mb
     assert catalog.calculate_total_size_mb(selected_ids) == expected_size
+
+
+def test_tools_category_present_and_validated():
+    catalog = load_catalog()
+    tools = catalog.filter(category="tools")
+    assert len(tools) >= 5
+    tool_ids = {t.id for t in tools}
+    assert "cyberchef_suite" in tool_ids
+    assert "it_tools_suite" in tool_ids
+    assert "circuitjs_simulator" in tool_ids
+    assert "drawio_offline_suite" in tool_ids

@@ -48,3 +48,8 @@ def test_us4_1_tui_filter_items():
     admin_results = model.filter_items(category="admin")
     assert len(admin_results) > 0
     assert all(i.category == "admin" for i in admin_results)
+
+    # Filter tools category
+    tools_results = model.filter_items(category="tools")
+    assert len(tools_results) >= 5
+    assert all(i.category == "tools" for i in tools_results)

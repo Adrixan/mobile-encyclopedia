@@ -72,7 +72,7 @@ def test_us1_1_ensure_vault_structure(tmp_path):
     vault = tmp_path / "offline_vault"
     vault.mkdir()
     dirs = ensure_vault_structure(vault)
-    for sub in ["admin", "dev", "tutorials", "wiki", "survival", "maps", "qna", "fun", ".tmp", "logs"]:
+    for sub in ["admin", "dev", "tutorials", "wiki", "survival", "maps", "qna", "fun", "tools", ".tmp", "logs"]:
         assert (vault / sub).is_dir()
         assert sub in dirs
 

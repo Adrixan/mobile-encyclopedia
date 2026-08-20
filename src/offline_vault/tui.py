@@ -221,22 +221,22 @@ Resources are stored without volatile version strings directly in category folde
 - **`admin/`**, **`wiki/`**, **`survival/`**, **`fun/`** (`.zim`): Offline compressed wikis and encyclopedias.
 - **`tutorials/kolibri/`** (`kolibri`): Interactive courses, PhET simulations, quizzes, and mastery tracking.
 - **`dev/`** (`.tgz` / `docset`): Kapeli Dash/Zeal API docsets (Python, Rust, C++, Go, PHP, JS, PostgreSQL).
-- **`dev/cyberchef_suite/`** (`.zip` / `html`): CyberChef complete offline web suite (encryption, encoding, hashing).
 - **`fun/`**, **`tutorials/`** (`.epub`): Standard Ebooks, Pro Git, javascript.info.
 - **`maps/`** (`.map`): Mapsforge vector maps for OsmAnd & Cruiser.
+- **`tools/`** (`.zip` / `.tar`): Standalone offline web apps (CyberChef, IT-Tools, CircuitJS1, Draw.io, SQLime, Ptable, MathGrapher, SunCalc, Excalidraw).
 
 ---
 
-### 📱 Android Reader Apps Setup
+### 📱 Android Reader & Offline App Setup
 
-| Format | Recommended App | Download Link | Vault Path |
+| Format / Type | Recommended App | Download Link | Vault Path |
 | :--- | :--- | :--- | :--- |
-| **`.zim`** | **Kiwix Mobile** | F-Droid / Play Store | `<vault>/wiki/`, `<vault>/admin/`, `<vault>/fun/` |
-| **`kolibri`** | **Kolibri Android App** | F-Droid / Play Store | `<vault>/tutorials/kolibri/` |
-| **`.epub`** | **KOReader** / **Librera** | F-Droid | `<vault>/fun/`, `<vault>/tutorials/` |
-| **`.map`** | **OsmAnd** / **Cruiser** | F-Droid / Play Store | `<vault>/maps/` |
-| **`docset`** | **Awh** / **Mobile Browser** | F-Droid | `<vault>/dev/` |
-| **`html / web`** | **Browser / CyberChef** | Chrome / Firefox | `<vault>/dev/cyberchef_suite/` |
+| **`.zim` Encyclopedias** | **Kiwix Mobile** | F-Droid / Play Store | `<vault>/wiki/`, `<vault>/admin/`, `<vault>/fun/` |
+| **`kolibri` LMS** | **Kolibri Android App** | F-Droid / Play Store | `<vault>/tutorials/kolibri/` |
+| **`.epub` Books** | **KOReader** / **Librera** | F-Droid | `<vault>/fun/`, `<vault>/tutorials/` |
+| **`.map` Vector Maps** | **OsmAnd** / **Cruiser** | F-Droid / Play Store | `<vault>/maps/` |
+| **`docset` APIs** | **Awh** / **Mobile Browser** | F-Droid | `<vault>/dev/` |
+| **`tools` Web Apps** | **Chrome / Firefox / Browser** | Direct / Local Server | `<vault>/tools/<tool_id>/index.html` |
 
 **How to Open Kiwix on Android**:
 1. Install **Kiwix Mobile** from F-Droid or Play Store.
@@ -441,6 +441,7 @@ class OfflineVaultApp(App):
                 yield Button("Maps", variant="default", id="cat_maps")
                 yield Button("Q&A", variant="default", id="cat_qna")
                 yield Button("Comics", variant="default", id="cat_fun")
+                yield Button("Tools", variant="default", id="cat_tools")
         yield DataTable(id="catalog_table")
         yield Footer()
 
