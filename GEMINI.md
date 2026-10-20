@@ -1,1 +1,0 @@
-.github/copilot-instructions/GEMINI.md
