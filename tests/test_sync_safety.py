@@ -369,3 +369,97 @@ def test_changed_patches_trigger_reinstall(tmp_path):
     mgr.catalog = ResourceCatalog([make([{"file": "index.html", "pattern": "b", "replace": "c"}])])
     assert mgr.sync_items(["app"]).completed == 1
     assert "a c" in (mgr.get_destination_for_item(mgr.catalog.get_by_id("app")) / "index.html").read_text()
+
+
+def test_fixed_url_is_updated_when_upstream_version_changes(tmp_path):
+    item = _zim_item("mapsforge_like")
+    resolver = StaticResolver({item.id: ResolvedSource(item.upstream_url, version='"v1"')})
+    mgr = _manager(tmp_path, [item], resolver)
+    mgr.engine.download = _writer(ZIM_BYTES)
+    assert mgr.sync_items([item.id]).completed == 1
+    assert mgr.sync_items([item.id]).skipped == 1
+    resolver.overrides[item.id] = ResolvedSource(item.upstream_url, version='"v2"')
+    assert mgr.sync_items([item.id]).completed == 1
+
+
+def test_record_without_version_adopts_current_version_without_redownload(tmp_path):
+    item = _zim_item("old_install")
+    mgr = _manager(tmp_path, [item])
+    mgr.engine.download = _writer(ZIM_BYTES)
+    assert mgr.sync_items([item.id]).completed == 1  # StaticResolver gives no version
+    mgr.resolver = StaticResolver({item.id: ResolvedSource(item.upstream_url, version='"v1"')})
+    assert mgr.sync_items([item.id]).skipped == 1
+    assert mgr.manifest.get(item.id)["version"] == '"v1"'
+
+
+def test_partial_from_older_version_of_same_url_is_not_resumed(tmp_path):
+    item = _zim_item("fixed_url")
+    resolver = StaticResolver({item.id: ResolvedSource(item.upstream_url, version='"v1"')})
+    mgr = _manager(tmp_path, [item], resolver)
+    partial = mgr.tmp_dir / f"{item.id}.zim.tmp"
+
+    def interrupted(url, destination, **kw):
+        Path(str(destination) + ".tmp").write_bytes(b"v1-partial")
+        return DownloadResult(url=url, destination=Path(destination), success=False, error_message="connection lost")
+
+    mgr.engine.download = interrupted
+    assert mgr.sync_items([item.id]).failed == 1
+    assert partial.exists()
+
+    resolver.overrides[item.id] = ResolvedSource(item.upstream_url, version='"v2"')
+    seen = {}
+
+    def check_partial(url, destination, **kw):
+        seen["partial_exists"] = partial.exists()
+        return _writer(ZIM_BYTES)(url, destination)
+
+    mgr.engine.download = check_partial
+    assert mgr.sync_items([item.id]).completed == 1
+    assert seen["partial_exists"] is False
+
+
+def test_downloads_run_concurrently_up_to_configured_limit(tmp_path):
+    import threading
+    import time
+
+    items = [_zim_item(f"item_{n}") for n in range(6)]
+    mgr = SyncManager(VaultConfig(vault_dir=str(tmp_path / "vault"), enable_kiwix_indexing=False,
+                                  max_concurrent_downloads=3),
+                      ResourceCatalog(items), resolver=StaticResolver())
+    lock = threading.Lock()
+    state = {"active": 0, "peak": 0}
+
+    def slow(url, destination, **kw):
+        with lock:
+            state["active"] += 1
+            state["peak"] = max(state["peak"], state["active"])
+        time.sleep(0.15)
+        with lock:
+            state["active"] -= 1
+        return _writer(ZIM_BYTES)(url, destination)
+
+    mgr.engine.download = slow
+    summary = mgr.sync_items([i.id for i in items])
+    assert summary.completed == 6
+    assert state["peak"] == 3
+    reloaded = SyncManager(VaultConfig(vault_dir=str(tmp_path / "vault")), ResourceCatalog(items),
+                           resolver=StaticResolver())
+    assert all(reloaded.manifest.get(i.id) for i in items), "manifest lost concurrent updates"
+
+
+def test_single_worker_when_limit_is_one(tmp_path):
+    import threading
+
+    items = [_zim_item(f"item_{n}") for n in range(3)]
+    mgr = SyncManager(VaultConfig(vault_dir=str(tmp_path / "vault"), enable_kiwix_indexing=False,
+                                  max_concurrent_downloads=1),
+                      ResourceCatalog(items), resolver=StaticResolver())
+    threads = set()
+
+    def record(url, destination, **kw):
+        threads.add(threading.get_ident())
+        return _writer(ZIM_BYTES)(url, destination)
+
+    mgr.engine.download = record
+    assert mgr.sync_items([i.id for i in items]).completed == 3
+    assert len(threads) == 1

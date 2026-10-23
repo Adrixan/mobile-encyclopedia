@@ -106,3 +106,18 @@ Decisions (Peter, 2026-10-23): Kolibri items switch to ZIMs where a ZIM exists; 
 - **US10.2: Localhost-only servers** (Must Have, 2 pts) — **DONE**
   1. Static portal, root-app ports, kiwix-serve (`--address`) and Kolibri (`KOLIBRI_LISTEN_ADDRESS`) bind to loopback; non-loopback `--host` is rejected (exit 2).
   2. LAN and hotspot sharing removed from docs and portal.
+
+### Epic 11: Self-Contained Updates & Backlog Closure (2026-10-23)
+- **US11.1: Self-contained catalog refresh** (Must Have, 5 pts) — **DONE**
+  1. Builder in the package (`catalog_builder.py`), spec packaged (`data/catalog_spec.yaml`).
+  2. `offline-vault refresh` and TUI `R`: tolerant rebuild into `~/.local/share/offline-vault/catalog.yaml`; unresolvable items keep packaged values; no token needed.
+  3. User catalog used only while its `spec_digest` matches the shipped spec; corrupt files fall back to the packaged catalog.
+- **US11.2: Updates for fixed URLs** (Must Have, 3 pts) — **DONE**
+  1. `url` items carry a version (ETag, or Last-Modified plus length; HEAD first, ranged GET fallback); changed versions trigger updates; old installs adopt the version without re-download.
+  2. `index` source picks the newest file in a directory listing (CircuitJS1); resume markers include the version.
+- **US11.3: Server hardening** (Must Have, 1 pt) — **DONE**: no directory listings; dotfiles and `logs/` answer 404.
+- **US11.4: Lockfiles and audit gate** (Must Have, 3 pts) — **DONE**: universal hash-pinned locks (runtime, dev, build); `run.sh` installs with `--require-hashes` and reinstalls on lock change; `scripts/check.sh`, `scripts/update-locks.sh`; CI on 3.10/3.13 plus weekly audit, actions pinned by SHA.
+- **US11.5: i18n** (Should Have, 3 pts) — **DONE**: TUI strings via `t()`; en, de, es, bs complete (63 keys); locale names validated.
+- **US11.6: Concurrent downloads** (Should Have, 2 pts) — **DONE**: `max_concurrent_downloads` worker threads; thread-safe manifest and Kiwix index; Kolibri sequential; bounded 429/503 retries.
+- **US11.7: Portal branding** (Could Have, 1 pt) — **DONE**: Bioluminescent Night tokens, offline font stacks, focus rings, reduced motion.
+- **US11.8: Project AGENTS.md** (Should Have, 1 pt) — **DONE**: `AGENTS.md` plus `CLAUDE.md` (`@AGENTS.md`).

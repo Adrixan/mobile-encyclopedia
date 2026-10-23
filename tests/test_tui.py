@@ -89,3 +89,36 @@ def test_toggle_keeps_cursor_position(tmp_path):
             assert type(app.screen).__name__ != "HelpScreen"
 
     asyncio.run(scenario())
+
+
+def test_r_refreshes_catalog_and_reloads_table(tmp_path, monkeypatch):
+    import asyncio
+
+    from offline_vault import catalog_builder
+    from offline_vault.catalog import get_default_catalog_file, get_user_catalog_file
+    from offline_vault.catalog_builder import BuildReport
+    from offline_vault.config import VaultConfig
+    from offline_vault.tui import OfflineVaultApp
+
+    def fake_refresh(cache_dir=None, force=False, log=None):
+        user = get_user_catalog_file()
+        user.parent.mkdir(parents=True, exist_ok=True)
+        user.write_text(get_default_catalog_file().read_text(encoding="utf-8").replace("size_mb: 37", "size_mb: 99", 1),
+                        encoding="utf-8")
+        return BuildReport(items=134)
+
+    monkeypatch.setattr(catalog_builder, "refresh_user_catalog", fake_refresh)
+
+    async def scenario():
+        app = OfflineVaultApp(config=VaultConfig(vault_dir=str(tmp_path)))
+        async with app.run_test(size=(160, 50)) as pilot:
+            app.query_one("#catalog_table").focus()
+            await pilot.press("r")
+            for _ in range(50):
+                await pilot.pause(0.05)
+                if app.catalog.get_by_id("archwiki_en").size_mb == 99:
+                    break
+            assert app.catalog.get_by_id("archwiki_en").size_mb == 99
+            assert app.model.catalog is app.catalog
+
+    asyncio.run(scenario())

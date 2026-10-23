@@ -238,3 +238,65 @@ def test_aria2_metalink_renamed_output_is_picked_up(tmp_path, monkeypatch):
     assert res.success, res.error_message
     assert dest.read_bytes() == b"ZIM\x04payload"
     assert sorted(p.name for p in tmp_path.iterdir()) == ["devdocs_nginx.zim"]
+
+
+def test_python_download_retries_rate_limits_with_retry_after(tmp_path):
+    import http.server
+
+    calls = {"n": 0}
+
+    class RateLimited(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            calls["n"] += 1
+            if calls["n"] <= 2:
+                self.send_response(429)
+                self.send_header("Retry-After", "7")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            body = b"ZIM\x04payload"
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    server = HTTPServer(("127.0.0.1", 0), RateLimited)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    waits = []
+    engine = DownloaderEngine(prefer_aria2=False)
+    engine._sleep = waits.append
+    try:
+        res = engine.download(f"http://127.0.0.1:{server.server_address[1]}/f", tmp_path / "f.zim")
+    finally:
+        server.shutdown()
+    assert res.success and (tmp_path / "f.zim").read_bytes() == b"ZIM\x04payload"
+    assert waits == [7, 7]
+
+
+def test_python_download_gives_up_after_bounded_retries(tmp_path):
+    import http.server
+
+    class AlwaysLimited(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(429)
+            self.send_header("Retry-After", "100000")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+
+        def log_message(self, *args):
+            pass
+
+    server = HTTPServer(("127.0.0.1", 0), AlwaysLimited)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    waits = []
+    engine = DownloaderEngine(prefer_aria2=False)
+    engine._sleep = waits.append
+    try:
+        res = engine.download(f"http://127.0.0.1:{server.server_address[1]}/f", tmp_path / "f.zim")
+    finally:
+        server.shutdown()
+    assert not res.success and "429" in res.error_message
+    assert len(waits) == 3 and max(waits) <= 60

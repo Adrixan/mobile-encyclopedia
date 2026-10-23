@@ -29,16 +29,26 @@
 ## Chore (2026-10-23)
 - [x] Catalog generator tracked in git: `scripts/generate_catalog.py` + `scripts/catalog_spec.yaml` (spec is the source of truth); indexes cached in `.scratch/catalog-inputs/`; `tests/test_catalog_generator.py` (offline generator tests + spec/catalog drift check); `.scratch/` in `.gitignore`.
 
-## Backlog (from the 2026-10-23 review, not in Sprint 6)
-- Periodic table element photos load from third-party hosts when online (not tracking, left as is).
-- CircuitJS1 URL is version-pinned (Falstad has no "latest" link); GitHub branch archives (OWASP, SQLime) carry no checksum.
-- Kolibri Android "import from folder" with Android scoped storage not tested on a device.
-- Static server still allows directory listing (now localhost only).
-- LAN/hotspot sharing was removed on request (2026-10-23); re-adding it would need an explicit opt-in flag.
-- Lockfile with exact pins (`uv lock`) and a `pip-audit` gate.
-- i18n is wired but unused; `max_concurrent_downloads` unused.
-- Portal styling to Bioluminescent Night tokens.
-- Project `AGENTS.md` plus `CLAUDE.md` (`@AGENTS.md`).
+## Sprint 9 (Epic 11: Self-Contained Updates & Backlog Closure)
+- [x] US11.1 Self-contained catalog refresh (5 pts) — PASS
+- [x] US11.2 Updates for fixed URLs, `index` source (3 pts) — PASS
+- [x] US11.3 Server hardening (1 pt) — PASS
+- [x] US11.4 Lockfiles and audit gate (3 pts) — PASS
+- [x] US11.5 i18n with German (3 pts) — PASS
+- [x] US11.6 Concurrent downloads (2 pts) — PASS
+- [x] US11.7 Portal branding (1 pt) — PASS
+- [x] US11.8 Project AGENTS.md (1 pt) — PASS
+- [x] 137 tests green; `scripts/check.sh` green (locks consistent, pip-audit clean); actionlint clean; fresh `run.sh` bootstrap from hashed locks; live user-style `offline-vault refresh` without token (131/134 refreshed, 3 kept packaged values on 429/timeout); live concurrent sync; portal screenshot.
+- [x] Found and fixed on the way: fixed-URL items never updated after first sync; eager `setdefault` made pinned sizes hit the network; resume marker ignored version changes; locale path traversal.
+
+## Backlog
+- Not tested on a device: APK installs from the vault, Kiwix APK scanning the vault folder, Kolibri app folder import, Termux `pip install kolibri`.
+- Help screen text and footer key labels are English only.
+- Standard Ebooks rate-limits per IP (bare 429, no Retry-After); syncing many titles at once may need a second run.
+
+## Decisions (kept as is)
+- LAN/hotspot sharing removed on request (2026-10-23); re-adding needs an explicit opt-in flag.
+- Periodic table element photos load from third-party hosts when online (not tracking).
 
 ## Completed Sprints 1-5
 - [x] US1.1, US2.1, US3.1, US4.1, US5.1, US6.1, US6.2, US6.3, US6.4, US7.1 (52 pts)

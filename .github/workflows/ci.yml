@@ -1,0 +1,46 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly, so new advisories against the pinned dependencies surface without a code change
+    - cron: "17 4 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install pinned dependencies (hash-verified)
+        run: |
+          uv venv .venv
+          uv pip install --python .venv --require-hashes -r requirements-build.lock -r requirements-dev.lock
+          uv pip install --python .venv --no-deps --no-build-isolation -e .
+      - name: Tests
+        run: .venv/bin/python -m pytest -q
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - name: Dependency audit
+        run: >-
+          uvx pip-audit==2.10.1 --progress-spinner off --disable-pip --require-hashes
+          -r requirements-dev.lock -r requirements-build.lock

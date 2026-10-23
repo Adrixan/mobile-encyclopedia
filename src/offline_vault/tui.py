@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Set
@@ -35,8 +36,11 @@ from offline_vault.config import (
     validate_and_resolve_vault_path,
 )
 from offline_vault.downloader import DownloadProgress, DownloadResult
-from offline_vault.i18n import get_locale, set_locale, t
+from offline_vault.i18n import set_locale, t
 from offline_vault.sync import SyncManager
+
+
+CATEGORY_BUTTONS = ["all", "admin", "dev", "tutorials", "wiki", "survival", "maps", "qna", "fun", "tools", "apps"]
 
 
 class TUIStateModel:
@@ -104,12 +108,12 @@ class BudgetBarWidget(Static):
         rem_gb = remaining_mb / 1024.0
 
         status_style = "bold red" if is_over else "bold green"
-        warning = " [⚠️ INSUFFICIENT DISK SPACE]" if is_over else ""
+        warning = f"  ⚠️ {escape(t('budget_insufficient'))}" if is_over else ""
 
         text = (
-            f"[bold cyan]Available Mount Space:[/bold cyan] {free_gb:.2f} GB  |  "
-            f"[bold yellow]Selected:[/bold yellow] {sel_gb:.2f} GB  |  "
-            f"[{status_style}]Projected Free:[/{status_style}] {rem_gb:.2f} GB{warning}"
+            f"[bold cyan]{escape(t('budget_available'))}[/bold cyan] {free_gb:.2f} GB  |  "
+            f"[bold yellow]{escape(t('budget_selected'))}[/bold yellow] {sel_gb:.2f} GB  |  "
+            f"[{status_style}]{escape(t('budget_projected'))}[/{status_style}] {rem_gb:.2f} GB{warning}"
         )
         self.update(text)
 
@@ -149,15 +153,15 @@ class PathDialog(ModalScreen[Optional[str]]):
 
     def compose(self) -> ComposeResult:
         with Vertical(id="dialog_box"):
-            yield Label("[bold cyan]Set Offline Vault Storage Directory[/bold cyan]", classes="title")
-            yield Label("[dim]Select a preset or type a custom destination folder path:[/dim]")
+            yield Label(f"[bold cyan]{escape(t('path_title'))}[/bold cyan]", classes="title")
+            yield Label(f"[dim]{escape(t('path_hint'))}[/dim]")
             with Horizontal(id="preset_bar"):
                 yield Button("~/offline_vault", variant="default", id="preset_home")
                 yield Button("/sdcard/Download/offline_vault", variant="default", id="preset_sdcard")
             yield Input(value=self.current_path, id="path_input")
             with Horizontal(id="btn_bar"):
-                yield Button("Save & Apply", variant="primary", id="btn_save")
-                yield Button("Cancel", variant="default", id="btn_cancel")
+                yield Button(t("btn_save"), variant="primary", id="btn_save")
+                yield Button(t("btn_cancel"), variant="default", id="btn_cancel")
 
     @on(Button.Pressed, "#preset_home")
     def on_preset_home(self) -> None:
@@ -208,6 +212,7 @@ class HelpScreen(ModalScreen[None]):
 - **C**: Clear all selections
 - **F** / **/**: Focus search & filter bar (`lang:bs`, `cat:wiki`, `tag:security`)
 - **H** / **?**: Open this guide, **Esc** closes it
+- **R**: Refresh the catalog (latest versions and sizes from upstream)
 - **Q**: Quit
 
 ---
@@ -263,7 +268,7 @@ IT-Tools, Excalidraw and Drawnix get their own ports (8001, 8002, ...), listed o
             with VerticalScroll(id="help_scroll"):
                 yield Markdown(self.HELP_MARKDOWN)
             with Horizontal():
-                yield Button("Close (Esc / Enter)", variant="primary", id="btn_close_help")
+                yield Button(t("btn_close_help"), variant="primary", id="btn_close_help")
 
     @on(Button.Pressed, "#btn_close_help")
     def on_close(self) -> None:
@@ -298,13 +303,13 @@ class SyncScreen(ModalScreen[None]):
 
     def compose(self) -> ComposeResult:
         with Vertical(id="sync_box"):
-            yield Label("[bold]Synchronizing Offline Knowledge Vault[/bold]", id="sync_title")
-            yield Label("Initializing transfers...", id="sync_status")
+            yield Label(f"[bold]{escape(t('sync_title'))}[/bold]", id="sync_title")
+            yield Label(t("sync_initializing"), id="sync_status")
             yield ProgressBar(total=len(self.selected_ids), id="overall_progress", show_eta=True)
-            yield Label("Current File Progress:", id="current_file_label")
+            yield Label(t("sync_current_file"), id="current_file_label")
             yield ProgressBar(total=100, id="item_progress")
             with Horizontal():
-                yield Button("Close / Done", variant="success", id="btn_done", disabled=True)
+                yield Button(t("btn_done"), variant="success", id="btn_done", disabled=True)
         yield Static("", id="sync_errors")
 
     def on_mount(self) -> None:
@@ -318,19 +323,20 @@ class SyncScreen(ModalScreen[None]):
         done_btn = self.query_one("#btn_done", Button)
 
         completed_count = 0
+        count_lock = threading.Lock()
 
         def on_item_progress(item: ResourceItem, p: DownloadProgress) -> None:
             speed_info = f" [cyan]({p.speed_text})[/cyan]" if p.speed_text else ""
-            self.app.call_from_thread(
-                status_lbl.update,
-                f"Downloading to [magenta]{item.category}/[/magenta]: [bold]{item.name}[/bold] ({p.percent:.1f}%){speed_info}"
-            )
+            message = escape(t("sync_downloading", category=item.category, name=item.name, percent=f"{p.percent:.1f}"))
+            self.app.call_from_thread(status_lbl.update, f"{message}{speed_info}")
             self.app.call_from_thread(item_bar.update, progress=p.percent)
 
         def on_item_complete(item: ResourceItem, res: DownloadResult) -> None:
             nonlocal completed_count
-            completed_count += 1
-            self.app.call_from_thread(overall_bar.update, progress=completed_count)
+            with count_lock:
+                completed_count += 1
+                done = completed_count
+            self.app.call_from_thread(overall_bar.update, progress=done)
 
         summary = self.sync_manager.sync_items(
             set(self.selected_ids),
@@ -341,8 +347,8 @@ class SyncScreen(ModalScreen[None]):
 
         status_style = "bold green" if summary.failed == 0 else "bold yellow"
         status_msg = (
-            f"[{status_style}]Sync Finished![/{status_style}] "
-            f"Downloaded: {summary.completed}, Up to date: {summary.skipped}, Failed: {summary.failed}"
+            f"[{status_style}]{escape(t('sync_finished'))}[/{status_style}] "
+            + escape(t("sync_summary", completed=summary.completed, skipped=summary.skipped, failed=summary.failed))
         )
         error_lines = "\n".join(
             f"[red]{escape(item_id)}[/red]: {escape(message)}" for item_id, message in summary.errors.items()
@@ -425,11 +431,13 @@ class OfflineVaultApp(App):
         Binding("c", "clear_all", "Clear"),
         Binding("f", "focus_search", "Search"),
         Binding("slash", "focus_search", "Search", show=False),
+        Binding("r", "refresh_catalog", "Refresh"),
     ]
 
     def __init__(self, config: Optional[VaultConfig] = None) -> None:
         super().__init__()
         self.config = config or load_config()
+        set_locale(self.config.locale or "en")
         self.catalog = load_catalog()
         _, _, free_bytes = get_disk_space(self.config.vault_dir)
         self.model = TUIStateModel(self.catalog, free_bytes)
@@ -439,32 +447,26 @@ class OfflineVaultApp(App):
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
         with Horizontal(id="top_vault_bar"):
-            yield Label(f"📁 Vault Location: {self.config.vault_dir}", id="vault_info_bar")
-            yield Button("📂 Set Path (P)", variant="warning", id="btn_set_path")
-            yield Button("❓ Help (H)", variant="default", id="btn_top_help")
-            yield Button("⚡ Start Sync (S)", variant="success", id="btn_top_sync")
+            yield Label(t("vault_location", path=self.config.vault_dir), id="vault_info_bar", markup=False)
+            yield Button(t("btn_set_path"), variant="warning", id="btn_set_path")
+            yield Button(t("btn_help"), variant="default", id="btn_top_help")
+            yield Button(t("btn_start_sync"), variant="success", id="btn_top_sync")
         yield BudgetBarWidget(id="budget_bar")
         with Horizontal(id="filter_container"):
-            yield Input(placeholder="Filter (e.g. python, lang:bs, cat:wiki, tag:security)...", id="search_input")
+            yield Input(placeholder=t("search_placeholder"), id="search_input")
             with Horizontal(id="category_bar"):
-                yield Button("All", variant="primary", id="cat_all")
-                yield Button("Admin", variant="default", id="cat_admin")
-                yield Button("Dev", variant="default", id="cat_dev")
-                yield Button("Tutorials", variant="default", id="cat_tutorials")
-                yield Button("Wikis", variant="default", id="cat_wiki")
-                yield Button("Survival", variant="default", id="cat_survival")
-                yield Button("Maps", variant="default", id="cat_maps")
-                yield Button("Q&A", variant="default", id="cat_qna")
-                yield Button("Books", variant="default", id="cat_fun")
-                yield Button("Tools", variant="default", id="cat_tools")
-                yield Button("Apps", variant="default", id="cat_apps")
+                for index, category in enumerate(CATEGORY_BUTTONS):
+                    yield Button(t(f"cat_{category}"), variant="primary" if index == 0 else "default", id=f"cat_{category}")
         yield DataTable(id="catalog_table")
         yield Footer()
 
     def on_mount(self) -> None:
         table = self.query_one("#catalog_table", DataTable)
         table.cursor_type = "row"
-        self._sel_column = table.add_columns("Sel", "Name", "Category", "Lang", "Format", "Size (MB)", "Description")[0]
+        self._sel_column = table.add_columns(
+            t("col_sel"), t("col_name"), t("col_category"), t("col_lang"), t("col_format"), t("col_size"),
+            t("col_description"),
+        )[0]
         self.refresh_table()
         self.update_budget_display()
 
@@ -569,19 +571,45 @@ class OfflineVaultApp(App):
                     save_config(self.config)
                     _, _, free = get_disk_space(resolved)
                     self.model.total_free_bytes = free
-                    self.query_one("#vault_info_bar", Label).update(f"📁 Vault Location: {self.config.vault_dir}")
+                    self.query_one("#vault_info_bar", Label).update(t("vault_location", path=self.config.vault_dir))
                     self.update_budget_display()
-                    self.notify(f"Vault location set to: {self.config.vault_dir}", severity="information")
+                    self.notify(t("notify_path_set", path=self.config.vault_dir), severity="information", markup=False)
                 except Exception as e:
-                    self.notify(f"Error setting path: {e}", severity="error")
+                    self.notify(t("notify_path_error", error=e), severity="error", markup=False)
 
         self.push_screen(PathDialog(self.config.vault_dir), on_path_selected)
 
+    def action_refresh_catalog(self) -> None:
+        self.notify(t("refresh_started"), severity="information")
+        self._refresh_worker()
+
+    @work(thread=True, exclusive=True)
+    def _refresh_worker(self) -> None:
+        from offline_vault import catalog_builder
+
+        try:
+            report = catalog_builder.refresh_user_catalog()
+        except Exception as e:  # noqa: BLE001 - surface any refresh problem in the UI
+            self.app.call_from_thread(self.notify, t("refresh_failed", error=e), severity="error", markup=False)
+            return
+        self.app.call_from_thread(self._reload_catalog, report)
+
+    def _reload_catalog(self, report) -> None:
+        self.catalog = load_catalog()
+        self.model.catalog = self.catalog
+        self.model.selected_ids &= {item.id for item in self.catalog.items}
+        self.refresh_table()
+        self.update_budget_display()
+        message = t("refresh_done", items=report.items)
+        if report.failed:
+            message += ", " + t("refresh_kept", count=len(report.failed))
+        self.notify(message, severity="information")
+
     def action_start_sync(self) -> None:
         if not self.model.selected_ids:
-            self.notify("No resources selected to sync!", severity="warning")
+            self.notify(t("notify_no_selection"), severity="warning")
             return
         if self.model.is_over_budget():
-            self.notify("Warning: Selected resources exceed available disk space!", severity="error")
+            self.notify(t("notify_over_budget"), severity="error")
 
         self.push_screen(SyncScreen(self.config, self.catalog, self.model.selected_ids))
