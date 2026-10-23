@@ -223,6 +223,9 @@ class SyncManager:
             # Installed by an older version without a manifest: keep it if it is valid
             path = self.get_destination_for_item(item)
             return path.is_dir() or check_file_signature(path, item.format) is None
+        if resolved.sha256 and record.get("sha256"):
+            # Content identity: survives signed or mirror URLs that change per request
+            return record["sha256"] == resolved.sha256
         return record.get("url") == resolved.url
 
     def install_archive(self, item: ResourceItem, archive: Path) -> str:

@@ -11,15 +11,19 @@ from urllib.parse import urlparse
 import yaml
 
 ALLOWED_SCHEMES = {"https"}
-VALID_FORMATS = {"zim", "map", "epub", "tar", "zip", "kolibri"}
-VALID_CATEGORIES = {"admin", "dev", "tutorials", "wiki", "survival", "maps", "qna", "fun", "tools"}
-VALID_SOURCES = {"url", "kiwix", "github", "kolibri"}
+VALID_FORMATS = {"zim", "map", "epub", "tar", "zip", "kolibri", "apk", "z5", "z8"}
+VALID_CATEGORIES = {"admin", "dev", "tutorials", "wiki", "survival", "maps", "qna", "fun", "tools", "apps"}
+VALID_SOURCES = {"url", "kiwix", "github", "kolibri", "oci", "fdroid"}
 VALID_KIWIX_FLAVOURS = {"", "maxi", "nopic", "mini"}
 ARCHIVE_FORMATS = {"zip", "tar"}
 
 _KIWIX_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9._\-]*$")
 _GITHUB_REPO_RE = re.compile(r"^[A-Za-z0-9_.\-]+/[A-Za-z0-9_.\-]+$")
 _KOLIBRI_CHANNEL_RE = re.compile(r"^[0-9a-f]{32}$")
+# Docker Hub repository ("namespace/name") and tag grammar
+_OCI_IMAGE_RE = re.compile(r"^[a-z0-9]+(?:[._-][a-z0-9]+)*/[a-z0-9]+(?:[._-][a-z0-9]+)*$")
+_OCI_TAG_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.\-]{0,127}$")
+_ANDROID_PACKAGE_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+$")
 
 
 def get_default_catalog_file() -> Path:
@@ -46,6 +50,9 @@ class ResourceItem:
     github_repo: str = ""
     asset_pattern: str = ""
     kolibri_channel: str = ""
+    oci_image: str = ""
+    oci_tag: str = ""
+    fdroid_package: str = ""
     entrypoint: str = ""
     extract_subdir: str = ""
     serve_root: bool = False
@@ -104,6 +111,9 @@ def _validate_source(data: Dict[str, Any], res_id: str, fmt: str) -> Dict[str, s
         "github_repo": str(data.get("github_repo", "")),
         "asset_pattern": str(data.get("asset_pattern", "")),
         "kolibri_channel": str(data.get("kolibri_channel", "")),
+        "oci_image": str(data.get("oci_image", "")),
+        "oci_tag": str(data.get("oci_tag", "latest" if source == "oci" else "")),
+        "fdroid_package": str(data.get("fdroid_package", "")),
     }
 
     if source == "kiwix":
@@ -125,6 +135,18 @@ def _validate_source(data: Dict[str, Any], res_id: str, fmt: str) -> Dict[str, s
             raise ValueError(f"Missing or invalid kolibri_channel in resource {res_id}")
         if fmt != "kolibri":
             raise ValueError(f"Kolibri source requires format 'kolibri' in resource {res_id}")
+    elif source == "oci":
+        if not _OCI_IMAGE_RE.match(fields["oci_image"]):
+            raise ValueError(f"Missing or invalid oci_image in resource {res_id}")
+        if not _OCI_TAG_RE.match(fields["oci_tag"]):
+            raise ValueError(f"Invalid oci_tag in resource {res_id}")
+        if fmt != "tar":
+            raise ValueError(f"OCI source requires format 'tar' in resource {res_id}")
+    elif source == "fdroid":
+        if not _ANDROID_PACKAGE_RE.match(fields["fdroid_package"]):
+            raise ValueError(f"Missing or invalid fdroid_package in resource {res_id}")
+        if fmt != "apk":
+            raise ValueError(f"F-Droid source requires format 'apk' in resource {res_id}")
     if fmt == "kolibri" and source != "kolibri":
         raise ValueError(f"Format 'kolibri' requires source 'kolibri' in resource {res_id}")
     return fields

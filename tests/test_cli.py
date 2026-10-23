@@ -88,3 +88,30 @@ def test_sync_combines_category_and_language_filters(tmp_path, monkeypatch):
     catalog = load_catalog()
     expected = {i.id for i in catalog.items if i.category == "wiki" and i.language == "bs"}
     assert expected and captured["ids"] == expected
+
+
+def test_sync_and_list_filter_by_tag(tmp_path, monkeypatch, capsys):
+    from offline_vault.catalog import load_catalog
+    from offline_vault.sync import SyncSummary
+
+    captured = {}
+
+    def fake_sync(self, item_ids, force_update=False, **kwargs):
+        captured["ids"] = set(item_ids)
+        return SyncSummary(len(item_ids), 0, 0, len(item_ids), 0, {})
+
+    monkeypatch.setattr("offline_vault.sync.SyncManager.sync_items", fake_sync)
+    assert run_cli(["sync", "--tag", "starter", "--vault-dir", str(tmp_path)]) == 0
+    expected = {i.id for i in load_catalog().items if "starter" in i.tags}
+    assert len(expected) >= 50 and captured["ids"] == expected
+
+    assert run_cli(["list", "--tag", "starter"]) == 0
+    assert f"Total items listed: {len(expected)}" in capsys.readouterr().out
+
+
+def test_starter_set_fits_a_phone():
+    from offline_vault.catalog import load_catalog
+
+    catalog = load_catalog()
+    starter = [i.id for i in catalog.items if "starter" in i.tags]
+    assert catalog.calculate_total_size_mb(starter) < 20 * 1024

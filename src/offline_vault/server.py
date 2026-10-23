@@ -163,7 +163,7 @@ def generate_portal_dashboard(
                 })
 
     downloaded_docs: List[Dict[str, str]] = []
-    for cat_name in ["admin", "dev", "tutorials", "survival", "qna", "fun"]:
+    for cat_name in ["admin", "dev", "tutorials", "survival", "qna", "fun", "apps"]:
         cdir = vault_dir / cat_name
         if cdir.is_dir():
             for item in cat.filter(category=cat_name):

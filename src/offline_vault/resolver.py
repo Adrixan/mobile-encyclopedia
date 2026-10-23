@@ -17,6 +17,21 @@ from offline_vault.catalog import ResourceItem
 
 KIWIX_LIBRARY_URL = "https://download.kiwix.org/library/library_zim.xml"
 GITHUB_LATEST_RELEASE_URL = "https://api.github.com/repos/{repo}/releases/latest"
+DOCKER_AUTH_URL = "https://auth.docker.io/token?service=registry.docker.io&scope=repository:{image}:pull"
+DOCKER_REGISTRY_URL = "https://registry-1.docker.io/v2/{image}"
+FDROID_PACKAGE_API = "https://f-droid.org/api/v1/packages/{package}"
+FDROID_APK_URL = "https://f-droid.org/repo/{package}_{version_code}.apk"
+OCI_MANIFEST_TYPES = ", ".join([
+    "application/vnd.oci.image.index.v1+json",
+    "application/vnd.docker.distribution.manifest.list.v2+json",
+    "application/vnd.oci.image.manifest.v1+json",
+    "application/vnd.docker.distribution.manifest.v2+json",
+])
+# Python's tarfile reads gzip; zstd layers would need Python 3.14
+OCI_GZIP_LAYER_TYPES = {
+    "application/vnd.oci.image.layer.v1.tar+gzip",
+    "application/vnd.docker.image.rootfs.diff.tar.gzip",
+}
 USER_AGENT = "OfflineVault/0.2"
 LIBRARY_CACHE_FILE = "kiwix_library_zim.xml"
 LIBRARY_MAX_AGE_SEC = 24 * 3600
@@ -104,8 +119,9 @@ class Resolver:
         self.timeout = timeout
         self._books: Optional[Dict[Tuple[str, str], KiwixBook]] = None
 
-    def _get(self, url: str) -> Any:
-        return self.session.get(url, headers={"User-Agent": USER_AGENT}, timeout=self.timeout)
+    def _get(self, url: str, headers: Optional[Dict[str, str]] = None, allow_redirects: bool = True) -> Any:
+        merged = {"User-Agent": USER_AGENT, **(headers or {})}
+        return self.session.get(url, headers=merged, timeout=self.timeout, allow_redirects=allow_redirects)
 
     def kiwix_books(self) -> Dict[Tuple[str, str], KiwixBook]:
         """Return the Kiwix library index, using a disk cache to spare mobile data."""
@@ -154,8 +170,11 @@ class Resolver:
 
     def _resolve_github(self, item: ResourceItem) -> ResolvedSource:
         pattern = re.compile(item.asset_pattern)
+        # Optional token lifts the anonymous API limit (60 requests/hour) that drops asset digests
+        token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+        auth = {"Authorization": f"Bearer {token}"} if token else None
         try:
-            resp = self._get(GITHUB_LATEST_RELEASE_URL.format(repo=item.github_repo))
+            resp = self._get(GITHUB_LATEST_RELEASE_URL.format(repo=item.github_repo), auth)
             if resp.status_code != 200:
                 return ResolvedSource(url=item.upstream_url)
             for asset in resp.json().get("assets", []):
@@ -171,10 +190,53 @@ class Resolver:
             pass
         return ResolvedSource(url=item.upstream_url)
 
+    def _resolve_oci(self, item: ResourceItem) -> ResolvedSource:
+        """Top filesystem layer of a Docker Hub image (where a final COPY puts a built web app)."""
+        try:
+            token = self._get(DOCKER_AUTH_URL.format(image=item.oci_image)).json()["token"]
+            auth = {"Authorization": f"Bearer {token}"}
+            registry = DOCKER_REGISTRY_URL.format(image=item.oci_image)
+            manifest = self._get(f"{registry}/manifests/{item.oci_tag}", {**auth, "Accept": OCI_MANIFEST_TYPES}).json()
+            if "manifests" in manifest:
+                # Static web files are architecture independent; prefer linux/amd64 for a stable choice
+                platforms = [m for m in manifest["manifests"] if m.get("platform", {}).get("os") == "linux"]
+                chosen = next((m for m in platforms if m["platform"].get("architecture") == "amd64"), None)
+                chosen = chosen or (platforms[0] if platforms else None)
+                if chosen is None:
+                    return ResolvedSource(url=item.upstream_url)
+                manifest = self._get(f"{registry}/manifests/{chosen['digest']}",
+                                     {**auth, "Accept": OCI_MANIFEST_TYPES}).json()
+            layer = manifest["layers"][-1]
+            digest = str(layer["digest"])
+            if layer.get("mediaType") not in OCI_GZIP_LAYER_TYPES or not digest.startswith("sha256:"):
+                return ResolvedSource(url=item.upstream_url)
+            blob = self._get(f"{registry}/blobs/{digest}", auth, allow_redirects=False)
+            location = blob.headers.get("Location", "") if blob.status_code in (301, 302, 303, 307, 308) else ""
+            if not _is_https(location):
+                return ResolvedSource(url=item.upstream_url)
+            return ResolvedSource(url=location, sha256=digest.split(":", 1)[1], size_bytes=int(layer.get("size") or 0) or None)
+        except (requests.RequestException, ValueError, KeyError, IndexError, TypeError, AttributeError):
+            return ResolvedSource(url=item.upstream_url)
+
+    def _resolve_fdroid(self, item: ResourceItem) -> ResolvedSource:
+        """F-Droid's suggested (stable) APK; Android verifies the APK signature on install."""
+        try:
+            data = self._get(FDROID_PACKAGE_API.format(package=item.fdroid_package)).json()
+            code = int(data["suggestedVersionCode"])
+            if any(int(p.get("versionCode", -1)) == code for p in data.get("packages", [])):
+                return ResolvedSource(url=FDROID_APK_URL.format(package=item.fdroid_package, version_code=code))
+        except (requests.RequestException, ValueError, KeyError, TypeError, AttributeError):
+            pass
+        return ResolvedSource(url=item.upstream_url)
+
     def resolve(self, item: ResourceItem) -> ResolvedSource:
         """Resolve an item to the newest download; falls back to the catalog URL."""
         if item.source == "kiwix":
             return self._resolve_kiwix(item)
         if item.source == "github":
             return self._resolve_github(item)
+        if item.source == "oci":
+            return self._resolve_oci(item)
+        if item.source == "fdroid":
+            return self._resolve_fdroid(item)
         return ResolvedSource(url=item.upstream_url)
