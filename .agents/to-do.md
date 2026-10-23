@@ -20,13 +20,19 @@
 - [x] US9.4 Phone starter set (2 pts) — PASS
 - [x] 102 tests green; live sync of 19 new items incl. OpenAndroMaps (1.2 GB); offline browser check of Excalidraw, Drawnix, periodic table, sun/moon demos, IT-Tools.
 
+## Sprint 8 (Epic 10: Privacy Patches, English Defaults, Localhost-Only Serving)
+- [x] US10.1 Catalog-defined patches (3 pts) — PASS
+- [x] US10.2 Localhost-only servers (2 pts) — PASS
+- [x] 110 tests green; live reinstall of the three patched apps; browser with internet allowed: zero outside requests at startup for Excalidraw, Drawnix, periodic table; English UI; `ss` shows 127.0.0.1 for portal, root-app ports and a real Kolibri 0.19.5; LAN address refused.
+- [x] Found and fixed: `serve --kolibri` failed on a fresh device (KOLIBRI_HOME parent missing).
+
 ## Backlog (from the 2026-10-23 review, not in Sprint 6)
-- Excalidraw's Docker build includes an analytics script (loads only when online); stripping it would mean patching upstream files.
-- Drawnix and the periodic table default to a Chinese UI.
+- Periodic table element photos load from third-party hosts when online (not tracking, left as is).
 - Catalog generator (`.scratch/gen_catalog.py` + `catalog_spec.yaml`, local only) could move into `scripts/` so sizes can be refreshed; needs a decision on spec vs. YAML as source of truth.
 - CircuitJS1 URL is version-pinned (Falstad has no "latest" link); GitHub branch archives (OWASP, SQLime) carry no checksum.
 - Kolibri Android "import from folder" with Android scoped storage not tested on a device.
-- Static server binds 0.0.0.0 with directory listing; `--host` ignored for Kiwix and Kolibri.
+- Static server still allows directory listing (now localhost only).
+- LAN/hotspot sharing was removed on request (2026-10-23); re-adding it would need an explicit opt-in flag.
 - Lockfile with exact pins (`uv lock`) and a `pip-audit` gate.
 - i18n is wired but unused; `max_concurrent_downloads` unused.
 - Portal styling to Bioluminescent Night tokens.

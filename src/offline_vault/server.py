@@ -9,7 +9,7 @@ import json
 import mimetypes
 import os
 import shutil
-import socket
+import ipaddress
 import subprocess
 import sys
 import threading
@@ -21,7 +21,13 @@ from rich.console import Console
 
 from offline_vault.catalog import ResourceCatalog, load_catalog
 from offline_vault.config import get_disk_space
-from offline_vault.kolibri import find_kolibri_executable, kolibri_content_dir, kolibri_env, kolibri_root
+from offline_vault.kolibri import (
+    find_kolibri_executable,
+    kolibri_content_dir,
+    kolibri_env,
+    kolibri_home_dir,
+    kolibri_root,
+)
 
 
 def init_mimetypes() -> None:
@@ -37,16 +43,23 @@ def init_mimetypes() -> None:
     mimetypes.add_type("text/markdown", ".md")
 
 
-def get_lan_ip() -> str:
-    """Discover primary outbound LAN IP address for network display without connecting outside."""
+DEFAULT_HOST = "127.0.0.1"
+LOOPBACK_ONLY_MESSAGE = "Servers listen on localhost only; use 127.0.0.1, ::1 or localhost."
+
+
+def is_loopback_host(host: str) -> bool:
+    """True for loopback addresses (127.0.0.0/8, ::1) and 'localhost'."""
+    if host == "localhost":
+        return True
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("10.255.255.255", 1))
-        ip = s.getsockname()[0]
-        s.close()
-        return ip
-    except Exception:
-        return "127.0.0.1"
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+def _bind_address(host: str) -> str:
+    """Numeric loopback address for tools that do not resolve names (kiwix-serve, Kolibri)."""
+    return "127.0.0.1" if host == "localhost" else host
 
 
 def find_kiwix_serve_executable() -> Optional[str]:
@@ -310,7 +323,7 @@ def generate_portal_dashboard(
     <div class="server-box">
       <h3 style="color: var(--primary); margin-bottom: 0.5rem;">🌐 Local Servers & Intranet Access</h3>
       <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-        This vault is served locally on your machine and across your Wi-Fi hotspot:
+        This vault is served on this device only (localhost):
       </p>
       <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
         <a class="btn btn-outline host-link" data-port="8080" href="http://localhost:8080" target="_blank">🎓 Kolibri LMS (Port 8080)</a>
@@ -360,7 +373,7 @@ def generate_portal_dashboard(
     html_content += """    </div>
   </div>
   <script>
-    // Point port-based links at the host this page was opened from (phone on the same Wi-Fi)
+    // Point port-based links at the host name this page was opened with (localhost or 127.0.0.1)
     document.querySelectorAll(".host-link").forEach(function (a) {
       a.href = location.protocol + "//" + location.hostname + ":" + a.dataset.port + "/";
     });
@@ -382,12 +395,15 @@ class VaultThreadingServer(http.server.ThreadingHTTPServer):
 
 def run_static_server(
     vault_dir: Path,
-    host: str = "0.0.0.0",
+    host: str = DEFAULT_HOST,
     port: int = 8000,
     console: Optional[Console] = None,
 ) -> int:
     """Run robust multi-threaded static document and tools server."""
     con = console or Console()
+    if not is_loopback_host(host):
+        con.print(f"[bold red]{LOOPBACK_ONLY_MESSAGE}[/bold red]")
+        return 1
     init_mimetypes()
     vault_dir = Path(vault_dir).resolve()
     vault_dir.mkdir(parents=True, exist_ok=True)
@@ -397,7 +413,6 @@ def run_static_server(
     generate_portal_dashboard(vault_dir, catalog, root_ports=ports)
 
     handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(vault_dir))
-    lan_ip = get_lan_ip()
     app_servers: List[VaultThreadingServer] = []
 
     try:
@@ -412,8 +427,6 @@ def run_static_server(
         with VaultThreadingServer((host, port), handler) as httpd:
             con.print(f"[bold green]Offline Static Portal & Web Apps running on port {port}![/bold green]")
             con.print(f" • [cyan]Local PC:[/cyan]      http://localhost:{port}")
-            if lan_ip != "127.0.0.1":
-                con.print(f" • [cyan]Local Network:[/cyan] http://{lan_ip}:{port} [dim](open on phone/tablet over Wi-Fi/Hotspot)[/dim]")
             for item_id, app_port in ports.items():
                 con.print(f" • [cyan]{catalog.get_by_id(item_id).name}:[/cyan] http://localhost:{app_port} [dim](needs its own site root)[/dim]")
             con.print("[dim]Press Ctrl+C to stop.[/dim]\n")
@@ -432,14 +445,18 @@ def run_static_server(
 
 def run_kolibri_server(
     vault_dir: Path,
-    host: str = "0.0.0.0",
+    host: str = DEFAULT_HOST,
     port: int = 8080,
     console: Optional[Console] = None,
 ) -> int:
     """Run Kolibri LMS server using isolated vault storage."""
     con = console or Console()
+    if not is_loopback_host(host):
+        con.print(f"[bold red]{LOOPBACK_ONLY_MESSAGE}[/bold red]")
+        return 1
     vault_dir = Path(vault_dir).resolve()
     kolibri_content_dir(vault_dir).mkdir(parents=True, exist_ok=True)
+    kolibri_home_dir().mkdir(parents=True, exist_ok=True)
 
     kolibri_bin = find_kolibri_executable()
     if not kolibri_bin:
@@ -452,6 +469,7 @@ def run_kolibri_server(
 
     con.print(f"[bold cyan]Launching Kolibri LMS on port {port}...[/bold cyan]")
     env = kolibri_env(vault_dir)
+    env["KOLIBRI_LISTEN_ADDRESS"] = _bind_address(host)
     con.print(f"[dim]KOLIBRI_CONTENT_DIR: {env['KOLIBRI_CONTENT_DIR']}[/dim]")
     con.print(f"[dim]Other devices: import channels from the folder {kolibri_root(vault_dir)}[/dim]")
 
@@ -469,12 +487,15 @@ def run_kolibri_server(
 
 def run_kiwix_server(
     vault_dir: Path,
-    host: str = "0.0.0.0",
+    host: str = DEFAULT_HOST,
     port: int = 8000,
     console: Optional[Console] = None,
 ) -> int:
     """Run Kiwix ZIM server using library.xml or discovered ZIM archives."""
     con = console or Console()
+    if not is_loopback_host(host):
+        con.print(f"[bold red]{LOOPBACK_ONLY_MESSAGE}[/bold red]")
+        return 1
     vault_dir = Path(vault_dir).resolve()
     kiwix_bin = find_kiwix_serve_executable()
 
@@ -495,7 +516,7 @@ def run_kiwix_server(
         con.print(f"[bold yellow]No ZIM archives found in {vault_dir}. Falling back to static doc & tools server...[/bold yellow]")
         return run_static_server(vault_dir, host=host, port=port, console=con)
 
-    cmd = [kiwix_bin, f"--port={port}"]
+    cmd = [kiwix_bin, f"--address={_bind_address(host)}", f"--port={port}"]
     if library_xml and library_xml.exists():
         cmd.append(f"--library={library_xml}")
     else:

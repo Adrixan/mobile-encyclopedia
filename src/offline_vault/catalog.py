@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -56,6 +58,15 @@ class ResourceItem:
     entrypoint: str = ""
     extract_subdir: str = ""
     serve_root: bool = False
+    # Post-install edits of upstream files (strip trackers, set defaults); a non-matching patch fails the install
+    patches: List[Dict[str, str]] = field(default_factory=list)
+
+    @property
+    def patches_digest(self) -> str:
+        """Fingerprint of the patch list, so changed patches trigger a reinstall."""
+        if not self.patches:
+            return ""
+        return hashlib.sha256(json.dumps(self.patches, sort_keys=True).encode()).hexdigest()[:16]
 
     @property
     def is_archive(self) -> bool:
@@ -96,6 +107,28 @@ def _validate_relative_path(value: str, field_name: str, allow_query: bool = Fal
     ):
         raise ValueError(f"Invalid {field_name}: {value}")
     return value
+
+
+def _validate_patches(raw: Any, res_id: str) -> List[Dict[str, str]]:
+    """Validate post-install patches: archive-relative file glob, compilable regex, replacement text."""
+    if raw in (None, []):
+        return []
+    if not isinstance(raw, list):
+        raise ValueError(f"patches must be a list in resource {res_id}")
+    patches: List[Dict[str, str]] = []
+    for index, patch in enumerate(raw):
+        if not isinstance(patch, dict) or not {"file", "pattern", "replace"} <= set(patch):
+            raise ValueError(f"patch {index} needs file, pattern and replace in resource {res_id}")
+        file_glob = str(patch["file"])
+        try:
+            _validate_relative_path(file_glob, "patch file")
+            re.compile(str(patch["pattern"]))
+        except (ValueError, re.error) as exc:
+            raise ValueError(f"Invalid patch {index} in resource {res_id}: {exc}") from exc
+        if not file_glob:
+            raise ValueError(f"Invalid patch {index} in resource {res_id}: empty file")
+        patches.append({"file": file_glob, "pattern": str(patch["pattern"]), "replace": str(patch["replace"])})
+    return patches
 
 
 def _validate_source(data: Dict[str, Any], res_id: str, fmt: str) -> Dict[str, str]:
@@ -185,6 +218,7 @@ def validate_resource_item(data: Dict[str, Any]) -> ResourceItem:
     source_fields = _validate_source(data, res_id, fmt)
     entrypoint = _validate_relative_path(str(data.get("entrypoint", "")), "entrypoint", allow_query=True)
     extract_subdir = _validate_relative_path(str(data.get("extract_subdir", "")).rstrip("/"), "extract_subdir")
+    patches = _validate_patches(data.get("patches"), res_id)
     serve_root = data.get("serve_root", False)
     if not isinstance(serve_root, bool):
         raise ValueError(f"serve_root must be true or false in resource {res_id}")
@@ -202,6 +236,7 @@ def validate_resource_item(data: Dict[str, Any]) -> ResourceItem:
         entrypoint=entrypoint,
         extract_subdir=extract_subdir,
         serve_root=serve_root,
+        patches=patches,
         **source_fields,
     )
 

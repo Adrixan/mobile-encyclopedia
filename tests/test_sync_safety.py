@@ -263,3 +263,109 @@ def test_signed_url_change_with_same_checksum_is_skipped(tmp_path):
     assert mgr.sync_items([item.id]).completed == 1
     resolver.overrides[item.id] = ResolvedSource("https://cdn.example/blob?sig=2", sha256=digest)
     assert mgr.sync_items([item.id]).skipped == 1
+
+
+EXCALIDRAW_INDEX = """<!DOCTYPE html><html><head><script>// point into our CDN in prod, fallback to root (excalidraw.com) domain in case of issues
+        window.EXCALIDRAW_ASSET_PATH = [
+          "https://excalidraw.nyc3.cdn.digitaloceanspaces.com/oss/",
+          "/",
+        ];</script><link rel="preload" href="https://excalidraw.nyc3.cdn.digitaloceanspaces.com/oss/fonts/Excalifont/Excalifont-Regular-a88b.woff2" as="font" type="font/woff2" crossorigin="anonymous"/><link rel="icon" href="/favicon.ico"/>
+<script type="module" crossorigin src="/assets/index-CAT.js"></script></head><body><div id="root"></div><script>// need to load this script dynamically bcs. of iframe embed tracking
+      var scriptEle = document.createElement("script");
+      scriptEle.setAttribute(
+        "src",
+        "https://scripts.simpleanalyticscdn.com/latest.js",
+      );
+      document.body.appendChild(scriptEle);</script></body></html>"""
+
+DRAWNIX_INDEX = """<!doctype html><html lang="zh-CN"><head><title>Drawnix - 开源白板工具</title>
+    <script type="module" crossorigin src="/assets/index-x.js"></script>
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="7083aa92"></script>
+  </head><body><div id="root"></div></body></html>"""
+
+
+def _install_with_catalog_patches(tmp_path, item_id, files):
+    """Install a fake build through the real catalog item's patches."""
+    real = load_catalog().get_by_id(item_id)
+    item = ResourceItem(id=real.id, name=real.name, category="tools", language="en", format="tar", size_mb=1,
+                        upstream_url="https://example.org/app.tar", entrypoint=real.entrypoint,
+                        patches=real.patches)
+    archive = tmp_path / "app.tar"
+    with tarfile.open(archive, "w") as tar:
+        for name, text in files.items():
+            data = text.encode()
+            info = tarfile.TarInfo(name)
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+    mgr = _manager(tmp_path, [item])
+    mgr.install_archive(item, archive)
+    return mgr.get_destination_for_item(item)
+
+
+def test_excalidraw_patches_strip_analytics_and_cdn(tmp_path):
+    css = ('@font-face{font-family:Assistant;src:url(https://excalidraw.nyc3.cdn.digitaloceanspaces.com/oss/fonts/'
+           'Assistant/Assistant-Regular.woff2) format("woff2"),url(./Assistant-Regular.woff2) format("woff2")}')
+    app = _install_with_catalog_patches(tmp_path, "excalidraw_whiteboard",
+                                        {"index.html": EXCALIDRAW_INDEX, "assets/index-CHk.css": css})
+    html = (app / "index.html").read_text()
+    assert "simpleanalytics" not in html
+    assert "digitaloceanspaces" not in html
+    assert '"/"' in html and 'id="root"' in html
+    patched_css = (app / "assets" / "index-CHk.css").read_text()
+    assert "digitaloceanspaces" not in patched_css and "url(./Assistant-Regular.woff2)" in patched_css
+
+
+def test_drawnix_patches_strip_umami_and_default_to_english(tmp_path):
+    app = _install_with_catalog_patches(tmp_path, "drawnix_whiteboard", {"index.html": DRAWNIX_INDEX})
+    html = (app / "index.html").read_text()
+    assert "umami" not in html
+    assert 'localStorage.setItem("language","en")' in html
+    assert html.index('localStorage.setItem("language","en")') < html.index("/assets/index-x.js")
+
+
+def test_periodic_table_patch_defaults_to_english(tmp_path):
+    js = 'const ne={elements:[],currentLanguage:"zh",currentMode:h.Default};'
+    app = _install_with_catalog_patches(tmp_path, "periodic_table_cyberpunk",
+                                        {"index.html": '<html lang="zh-CN"><title>元素周期表</title></html>',
+                                         "assets/index-CFAAkAlt.js": js})
+    assert 'currentLanguage:"en"' in (app / "assets" / "index-CFAAkAlt.js").read_text()
+
+
+def test_patch_that_no_longer_matches_fails_and_keeps_previous_install(tmp_path):
+    item = ResourceItem(id="tracked_app", name="t", category="tools", language="en", format="zip", size_mb=1,
+                        upstream_url="https://example.org/t.zip", entrypoint="index.html",
+                        patches=[{"file": "index.html", "pattern": "tracker\\.js", "replace": ""}])
+    mgr = _manager(tmp_path, [item])
+    app_dir = mgr.get_destination_for_item(item)
+    app_dir.mkdir(parents=True)
+    (app_dir / "index.html").write_text("previous")
+
+    def zip_without_tracker(url):
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as z:
+            z.writestr("index.html", "<html>renamed-tracker</html>")
+        return buf.getvalue()
+
+    mgr.engine.download = _writer(zip_without_tracker)
+    summary = mgr.sync_items([item.id], force_update=True)
+    assert summary.failed == 1 and "patch" in summary.errors[item.id]
+    assert (app_dir / "index.html").read_text() == "previous"
+
+
+def test_changed_patches_trigger_reinstall(tmp_path):
+    def make(patches):
+        return ResourceItem(id="app", name="a", category="tools", language="en", format="zip", size_mb=1,
+                            upstream_url="https://example.org/a.zip", entrypoint="index.html", patches=patches)
+
+    def build(url):
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as z:
+            z.writestr("index.html", "<html>a b</html>")
+        return buf.getvalue()
+
+    mgr = _manager(tmp_path, [make([])])
+    mgr.engine.download = _writer(build)
+    assert mgr.sync_items(["app"]).completed == 1
+    mgr.catalog = ResourceCatalog([make([{"file": "index.html", "pattern": "b", "replace": "c"}])])
+    assert mgr.sync_items(["app"]).completed == 1
+    assert "a c" in (mgr.get_destination_for_item(mgr.catalog.get_by_id("app")) / "index.html").read_text()
