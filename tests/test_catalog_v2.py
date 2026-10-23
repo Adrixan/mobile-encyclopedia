@@ -139,3 +139,13 @@ def test_patches_are_validated():
     item = validate_resource_item(_base(patches=[{"file": "assets/*.js", "pattern": "a", "replace": "b"}], **base))
     assert item.patches[0]["file"] == "assets/*.js"
     assert item.patches_digest
+
+
+def test_index_source_requires_https_index_and_pattern():
+    base = dict(format="tar", category="tools", entrypoint="index.html")
+    with pytest.raises(ValueError, match="index_url"):
+        validate_resource_item(_base(source="index", index_url="http://x.org/", index_pattern="a", **base))
+    with pytest.raises(ValueError, match="index_pattern"):
+        validate_resource_item(_base(source="index", index_url="https://x.org/", index_pattern="(", **base))
+    item = validate_resource_item(_base(source="index", index_url="https://x.org/", index_pattern=r"a\.tgz", **base))
+    assert item.index_url == "https://x.org/"

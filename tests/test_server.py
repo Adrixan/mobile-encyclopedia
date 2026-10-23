@@ -181,3 +181,53 @@ def test_cli_serve_defaults_to_localhost_and_rejects_lan(tmp_path):
         assert run_cli(["serve", "--static", "--vault-dir", str(tmp_path)]) == 0
         assert mock_static.call_args.kwargs["host"] == "127.0.0.1"
         assert run_cli(["serve", "--static", "--host", "0.0.0.0", "--vault-dir", str(tmp_path)]) == 2
+
+
+def test_vault_handler_hides_listings_and_internal_files(tmp_path):
+    import functools
+
+    from offline_vault.server import VaultRequestHandler
+
+    (tmp_path / "tools" / "app").mkdir(parents=True)
+    (tmp_path / "tools" / "app" / "index.html").write_text("<html>app</html>", encoding="utf-8")
+    (tmp_path / ".offline-vault").mkdir()
+    (tmp_path / ".offline-vault" / "manifest.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "logs").mkdir()
+    (tmp_path / "logs" / "sync.log").write_text("x", encoding="utf-8")
+    (tmp_path / "wiki").mkdir()
+    (tmp_path / "wiki" / "a.zim").write_bytes(b"ZIM\x04")
+    handler = functools.partial(VaultRequestHandler, directory=str(tmp_path))
+    server = VaultThreadingServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        conn = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+        expectations = {
+            "/tools/": 404,
+            "/wiki/": 404,
+            "/.offline-vault/manifest.json": 404,
+            "/%2Eoffline-vault/manifest.json": 404,
+            "/logs/sync.log": 404,
+            "/tools/app/": 200,
+            "/wiki/a.zim": 200,
+        }
+        for path, status in expectations.items():
+            conn.request("GET", path)
+            resp = conn.getresponse()
+            resp.read()
+            assert resp.status == status, path
+        conn.close()
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_portal_uses_brand_tokens_and_loads_nothing_external(tmp_path):
+    import re
+
+    portal = generate_portal_dashboard(tmp_path, ResourceCatalog([])).read_text(encoding="utf-8")
+    for token in ("#121212", "#1E1E1E", "#E0E0E0", "#4ADE80", "#A7F3D0", "#F59E0B"):
+        assert token in portal, token
+    assert "Space Grotesk" in portal and "JetBrains Mono" in portal
+    assert ":focus-visible" in portal and "prefers-reduced-motion" in portal
+    assert not re.search(r'(src|href)="https?://(?!localhost)', portal)
+    assert "@import" not in portal and "fonts.googleapis" not in portal

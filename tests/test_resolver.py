@@ -207,3 +207,62 @@ def test_github_token_from_environment_is_sent_only_to_api(tmp_path, monkeypatch
                  asset_pattern=r"app\.zip", upstream_url="https://github.com/pinned.zip")
     Resolver(session=RecordingSession({api: FakeResponse(payload=payload)}), cache_dir=tmp_path).resolve(item)
     assert seen[api]["Authorization"] == "Bearer ghp_test"
+
+
+def test_resolve_url_reports_version_from_etag_or_last_modified(tmp_path):
+    url = "https://download.mapsforge.org/maps/v5/europe/austria.map"
+    session = FakeSession({url: FakeResponse(headers={"ETag": '"abc-1"', "Content-Length": "554110376"})})
+    res = Resolver(session=session, cache_dir=tmp_path).resolve(
+        _item(category="maps", format="map", upstream_url=url))
+    assert res.url == url and res.version == '"abc-1"'
+
+    session = FakeSession({url: FakeResponse(headers={"Last-Modified": "Fri, 21 Aug 2026 12:21:09 GMT",
+                                                      "Content-Length": "10"})})
+    res = Resolver(session=session, cache_dir=tmp_path).resolve(_item(category="maps", format="map", upstream_url=url))
+    assert res.version == "Fri, 21 Aug 2026 12:21:09 GMT|10"
+
+
+def test_resolve_url_offline_has_no_version(tmp_path):
+    item = _item(category="maps", format="map", upstream_url="https://example.org/a.map")
+    res = Resolver(session=FakeSession({}), cache_dir=tmp_path).resolve(item)
+    assert res.url == item.upstream_url and res.version is None
+
+
+def test_resolve_index_picks_highest_version(tmp_path):
+    index = "https://www.falstad.com/circuit/offline/"
+    listing = (b'<a href="circuitjs1-5.0.1ts-linux64.tgz">a</a><a href="circuitjs1-5.10.0ts-linux64.tgz">b</a>'
+               b'<a href="circuitjs1-5.2.0ts-linux64.tgz">c</a><a href="circuitjs1-5.10.0ts-win.zip">d</a>')
+    session = FakeSession({index: FakeResponse(content=listing)})
+    item = _item(category="tools", format="tar", source="index", index_url=index,
+                 index_pattern=r"circuitjs1-[0-9.]+ts-linux64\.tgz",
+                 upstream_url="https://www.falstad.com/circuit/offline/circuitjs1-5.0.1ts-linux64.tgz")
+    res = Resolver(session=session, cache_dir=tmp_path).resolve(item)
+    assert res.url == "https://www.falstad.com/circuit/offline/circuitjs1-5.10.0ts-linux64.tgz"
+
+
+def test_resolve_url_prefers_head_and_skips_get_when_validator_found(tmp_path):
+    url = "https://standardebooks.org/ebooks/x/downloads/x.epub?source=download"
+
+    class HeadSession(FakeSession):
+        def head(self, u, **kwargs):
+            self.calls.append(("HEAD", u))
+            return FakeResponse(headers={"ETag": '"se-1"', "Content-Length": "633860"})
+
+    session = HeadSession({url: FakeResponse(headers={"ETag": '"from-get"'})})
+    res = Resolver(session=session, cache_dir=tmp_path).resolve(_item(category="fun", format="epub", upstream_url=url))
+    assert res.version == '"se-1"'
+    assert session.calls == [("HEAD", url)]
+
+
+def test_resolve_url_falls_back_to_ranged_get_when_head_fails(tmp_path):
+    import requests
+
+    url = "https://download.geogebra.org/package/geogebra-math-apps-bundle"
+
+    class NoHeadSession(FakeSession):
+        def head(self, u, **kwargs):
+            raise requests.ConnectTimeout("HEAD ignored")
+
+    session = NoHeadSession({url: FakeResponse(status_code=206, headers={"ETag": '"ggb"', "Content-Range": "bytes 0-0/33461640"})})
+    res = Resolver(session=session, cache_dir=tmp_path).resolve(_item(category="tools", format="zip", upstream_url=url))
+    assert res.version == '"ggb"'

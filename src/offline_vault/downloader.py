@@ -15,6 +15,9 @@ from typing import Callable, Dict, Optional
 import requests
 
 USER_AGENT = "OfflineVault/0.2"
+RETRY_STATUSES = {429, 503}
+MAX_RETRIES = 3
+MAX_RETRY_WAIT_SEC = 60
 
 # Leading bytes identifying each downloadable format
 FILE_SIGNATURES: Dict[str, bytes] = {
@@ -107,6 +110,7 @@ class DownloaderEngine:
         self.prefer_aria2 = prefer_aria2 and has_aria2()
         self.split_connections = split_connections
         self.timeout = timeout
+        self._sleep: Callable[[float], None] = time.sleep
 
     def download(
         self,
@@ -192,6 +196,8 @@ class DownloaderEngine:
             f"--split={self.split_connections}",
             "--min-split-size=1M",
             "--continue=true",
+            "--max-tries=5",
+            "--retry-wait=10",
             f"--dir={workdir}",
             f"--out={tmp_path.name}",
             "--check-certificate=true",
@@ -278,6 +284,7 @@ class DownloaderEngine:
         dest_path: Path,
         tmp_path: Path,
         progress_callback: Optional[Callable[[DownloadProgress], None]],
+        attempt: int = 0,
     ) -> DownloadResult:
         """Download using Python requests with HTTP Range headers for resuming."""
         existing_size = tmp_path.stat().st_size if tmp_path.exists() else 0
@@ -297,6 +304,13 @@ class DownloaderEngine:
                     # Partial no longer matches upstream: restart from scratch
                     tmp_path.unlink(missing_ok=True)
                     return self._download_python(url, dest_path, tmp_path, progress_callback)
+                if response.status_code in RETRY_STATUSES and attempt < MAX_RETRIES:
+                    # Rate limited or temporarily unavailable: honour Retry-After within a bounded wait
+                    retry_after = response.headers.get("Retry-After", "")
+                    wait = int(retry_after) if retry_after.isdigit() else 5 * (attempt + 1)
+                    response.close()
+                    self._sleep(min(wait, MAX_RETRY_WAIT_SEC))
+                    return self._download_python(url, dest_path, tmp_path, progress_callback, attempt + 1)
                 if response.status_code not in (200, 206):
                     return DownloadResult(
                         url=url,

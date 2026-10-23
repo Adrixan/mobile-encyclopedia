@@ -15,7 +15,7 @@ import sys
 import threading
 from pathlib import Path
 from typing import Dict, List, Optional
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 from rich.console import Console
 
@@ -137,7 +137,29 @@ def root_app_ports(vault_dir: Path, catalog: ResourceCatalog, base_port: int) ->
     return ports
 
 
-class SpaRequestHandler(http.server.SimpleHTTPRequestHandler):
+# Vault internals that must never be served (manifest, partial downloads, logs)
+HIDDEN_TOP_LEVEL = {"logs"}
+
+
+class VaultRequestHandler(http.server.SimpleHTTPRequestHandler):
+    """Static handler without directory listings; dotfiles and vault internals answer 404."""
+
+    def _is_hidden(self) -> bool:
+        parts = [p for p in unquote(urlsplit(self.path).path).split("/") if p]
+        return any(p.startswith(".") for p in parts) or (bool(parts) and parts[0] in HIDDEN_TOP_LEVEL)
+
+    def send_head(self):  # type: ignore[override]
+        if self._is_hidden():
+            self.send_error(404, "File not found")
+            return None
+        return super().send_head()
+
+    def list_directory(self, path):  # type: ignore[override]
+        self.send_error(404, "File not found")
+        return None
+
+
+class SpaRequestHandler(VaultRequestHandler):
     """Serves index.html for unknown extension-less paths (history-mode single-page apps)."""
 
     def send_head(self):  # type: ignore[override]
@@ -210,62 +232,72 @@ def generate_portal_dashboard(
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Offline Knowledge Vault 📚⚡</title>
   <style>
+    /* Bioluminescent Night: fonts by name only (no web font downloads, works offline) */
     :root {{
-      --bg: #0f172a;
-      --card-bg: #1e293b;
-      --card-border: #334155;
-      --primary: #38bdf8;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
-      --accent: #22c55e;
-      --accent-orange: #f59e0b;
+      --bg: #121212;
+      --panel: #1E1E1E;
+      --panel-glass: rgba(30, 30, 30, 0.72);
+      --border: rgba(74, 222, 128, 0.18);
+      --text: #E0E0E0;
+      --text-muted: #A3A3A3;
+      --primary: #4ADE80;
+      --secondary: #A7F3D0;
+      --alert: #F59E0B;
+      --font-heading: "Space Grotesk", "Chakra Petch", system-ui, sans-serif;
+      --font-body: "Inter", "Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --font-code: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
     }}
     * {{ box-sizing: border-box; margin: 0; padding: 0; }}
     body {{
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: var(--bg);
+      font-family: var(--font-body);
+      background:
+        radial-gradient(60rem 40rem at 85% -10%, rgba(74, 222, 128, 0.10), transparent 60%),
+        radial-gradient(40rem 30rem at -10% 110%, rgba(167, 243, 208, 0.06), transparent 60%),
+        var(--bg);
+      background-attachment: fixed;
       color: var(--text);
       line-height: 1.6;
-      padding: 1.5rem;
+      padding: 2rem 1rem;
+      min-height: 100vh;
     }}
     .container {{ max-width: 1200px; margin: 0 auto; }}
     header {{
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
       padding-bottom: 1.5rem;
-      border-bottom: 1px solid var(--card-border);
+      border-bottom: 1px solid var(--border);
       margin-bottom: 2rem;
     }}
-    h1 {{ font-size: 1.8rem; color: var(--primary); display: flex; align-items: center; gap: 0.5rem; }}
-    .badge-bar {{ display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.5rem; }}
+    h1, h2, h3 {{ font-family: var(--font-heading); letter-spacing: 0.01em; }}
+    h1 {{ font-size: 1.9rem; color: var(--primary); display: flex; align-items: center; gap: 0.5rem; }}
+    code {{ font-family: var(--font-code); color: var(--secondary); font-size: 0.9em; }}
+    .badge-bar {{ display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.75rem; }}
     .badge {{
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
+      background: var(--panel-glass);
+      border: 1px solid var(--border);
       padding: 0.25rem 0.75rem;
       border-radius: 9999px;
       font-size: 0.85rem;
       color: var(--text-muted);
     }}
-    .badge strong {{ color: var(--text); }}
+    .badge strong {{ color: var(--secondary); }}
     .section-title {{
       font-size: 1.3rem;
-      margin: 1.5rem 0 1rem 0;
-      color: var(--primary);
+      margin: 2rem 0 1rem 0;
+      color: var(--secondary);
       display: flex;
       align-items: center;
       gap: 0.5rem;
     }}
     .grid {{
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
       gap: 1.25rem;
       margin-bottom: 2rem;
     }}
     .card {{
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
+      background: var(--panel-glass);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
       border-radius: 0.75rem;
       padding: 1.25rem;
       display: flex;
@@ -273,36 +305,38 @@ def generate_portal_dashboard(
       justify-content: space-between;
       transition: transform 0.15s, border-color 0.15s;
     }}
-    .card:hover {{
-      transform: translateY(-2px);
-      border-color: var(--primary);
-    }}
+    .card:hover {{ transform: translateY(-2px); border-color: var(--primary); }}
     .card h3 {{ font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--text); }}
     .card p {{ font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem; flex-grow: 1; }}
     .btn {{
       display: inline-block;
       text-align: center;
       background: var(--primary);
-      color: #0f172a;
+      color: var(--bg);
       font-weight: 600;
       text-decoration: none;
-      padding: 0.5rem 1rem;
+      padding: 0.55rem 1rem;
       border-radius: 0.375rem;
       font-size: 0.9rem;
     }}
-    .btn:hover {{ background: #7dd3fc; }}
-    .btn-outline {{
-      background: transparent;
-      border: 1px solid var(--primary);
-      color: var(--primary);
-    }}
-    .btn-outline:hover {{ background: rgba(56, 189, 248, 0.1); }}
+    .btn:hover {{ background: var(--secondary); }}
+    .btn-outline {{ background: transparent; border: 1px solid var(--primary); color: var(--primary); }}
+    .btn-outline:hover {{ background: rgba(74, 222, 128, 0.12); color: var(--secondary); }}
+    a:focus-visible, .btn:focus-visible {{ outline: 2px solid var(--secondary); outline-offset: 3px; }}
     .server-box {{
-      background: rgba(56, 189, 248, 0.05);
-      border: 1px dashed var(--primary);
+      background: var(--panel-glass);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      border: 1px dashed var(--border);
+      border-left: 3px solid var(--alert);
       border-radius: 0.75rem;
       padding: 1.25rem;
       margin-bottom: 2rem;
+    }}
+    .server-box h3 {{ color: var(--alert); margin-bottom: 0.5rem; }}
+    @media (prefers-reduced-motion: reduce) {{
+      .card {{ transition: none; }}
+      .card:hover {{ transform: none; }}
     }}
   </style>
 </head>
@@ -321,7 +355,7 @@ def generate_portal_dashboard(
     </header>
 
     <div class="server-box">
-      <h3 style="color: var(--primary); margin-bottom: 0.5rem;">🌐 Local Servers & Intranet Access</h3>
+      <h3>🌐 Local Servers (this device only)</h3>
       <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.75rem;">
         This vault is served on this device only (localhost):
       </p>
@@ -412,7 +446,7 @@ def run_static_server(
     ports = root_app_ports(vault_dir, catalog, port)
     generate_portal_dashboard(vault_dir, catalog, root_ports=ports)
 
-    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(vault_dir))
+    handler = functools.partial(VaultRequestHandler, directory=str(vault_dir))
     app_servers: List[VaultThreadingServer] = []
 
     try:

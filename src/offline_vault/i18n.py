@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-import os
+import re
 from pathlib import Path
 from typing import Any, Dict
 
@@ -17,9 +17,14 @@ def get_locales_dir() -> Path:
     return Path(__file__).parent / "locales"
 
 
+_LOCALE_RE = re.compile(r"^[a-z]{2,3}(?:_[A-Z]{2})?$")
+
+
 def load_locale(locale: str) -> Dict[str, str]:
-    """Load translation mapping for a given locale."""
+    """Load translation mapping for a given locale (unknown or malformed names fall back to English)."""
     global _TRANSLATIONS
+    if not _LOCALE_RE.match(locale):
+        locale = DEFAULT_LOCALE
     if locale in _TRANSLATIONS:
         return _TRANSLATIONS[locale]
 
@@ -40,7 +45,7 @@ def load_locale(locale: str) -> Dict[str, str]:
 def set_locale(locale: str) -> None:
     """Set the active locale."""
     global _CURRENT_LOCALE
-    _CURRENT_LOCALE = locale
+    _CURRENT_LOCALE = locale if _LOCALE_RE.match(locale) else DEFAULT_LOCALE
     load_locale(locale)
 
 

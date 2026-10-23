@@ -8,7 +8,9 @@ import re
 import shutil
 import stat
 import tarfile
+import threading
 import zipfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
@@ -59,6 +61,8 @@ class Manifest:
     def __init__(self, vault_root: Path) -> None:
         self.path = vault_root / MANIFEST_DIR / MANIFEST_FILE
         self.items: Dict[str, Dict[str, Any]] = {}
+        # Concurrent downloads update the manifest from worker threads
+        self._lock = threading.Lock()
         try:
             data = json.loads(self.path.read_text(encoding="utf-8"))
             if isinstance(data, dict) and isinstance(data.get("items"), dict):
@@ -70,13 +74,16 @@ class Manifest:
         return self.items.get(item_id)
 
     def set(self, item_id: str, record: Dict[str, Any]) -> None:
-        self.items[item_id] = record
+        with self._lock:
+            self.items[item_id] = record
 
     def save(self) -> None:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = self.path.with_suffix(".tmp")
-        tmp.write_text(json.dumps({"version": 1, "items": self.items}, indent=2, sort_keys=True), encoding="utf-8")
-        tmp.replace(self.path)
+        with self._lock:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = self.path.with_suffix(".tmp")
+            payload = json.dumps({"version": 1, "items": self.items}, indent=2, sort_keys=True)
+            tmp.write_text(payload, encoding="utf-8")
+            tmp.replace(self.path)
 
 
 def _safe_member_path(name: str, subdir: str = "") -> Optional[PurePosixPath]:
@@ -246,7 +253,17 @@ class SyncManager:
         if resolved.sha256 and record.get("sha256"):
             # Content identity: survives signed or mirror URLs that change per request
             return record["sha256"] == resolved.sha256
-        return record.get("url") == resolved.url
+        if record.get("url") != resolved.url:
+            return False
+        if resolved.version:
+            if not record.get("version"):
+                # Installed before versions were tracked: adopt the current validator as baseline
+                record["version"] = resolved.version
+                self.manifest.set(item.id, record)
+                self.manifest.save()
+                return True
+            return record["version"] == resolved.version
+        return True
 
     def install_archive(self, item: ResourceItem, archive: Path) -> str:
         """Extract into a staging folder, verify the entrypoint, then swap atomically. Returns the entry URL."""
@@ -299,11 +316,13 @@ class SyncManager:
         staged = self.tmp_dir / f"{item.id}.{item.format}"
         partial = staged.with_name(staged.name + ".tmp")
         marker = staged.with_name(staged.name + ".src")
-        # A partial from an older upstream version must not be resumed
-        if marker.is_file() and marker.read_text(encoding="utf-8").strip() != resolved.url:
+        # A partial from an older upstream version (other URL, checksum or validator) must not be resumed
+        identity = f"{resolved.url}|{resolved.sha256 or resolved.version or ''}"
+        if marker.is_file() and marker.read_text(encoding="utf-8").strip() != identity:
             partial.unlink(missing_ok=True)
             partial.with_name(partial.name + ".aria2").unlink(missing_ok=True)
-        marker.write_text(resolved.url, encoding="utf-8")
+            shutil.rmtree(partial.with_name(partial.name + ".aria2d"), ignore_errors=True)
+        marker.write_text(identity, encoding="utf-8")
 
         def item_progress(p: DownloadProgress) -> None:
             if progress_callback:
@@ -337,6 +356,7 @@ class SyncManager:
             "path": artifact.relative_to(self.vault_root).as_posix(),
             "url": resolved.url,
             "sha256": resolved.sha256,
+            "version": resolved.version,
             "size": size,
             "entry": entry,
             "patches": item.patches_digest,
@@ -372,38 +392,53 @@ class SyncManager:
         progress_callback: Optional[Callable[[ResourceItem, DownloadProgress], None]] = None,
         item_completed_callback: Optional[Callable[[ResourceItem, DownloadResult], None]] = None,
     ) -> SyncSummary:
-        """Download missing or outdated items; one failing item never aborts the batch."""
+        """Download missing or outdated items; one failing item never aborts the batch.
+
+        Downloads run on up to ``max_concurrent_downloads`` worker threads; Kolibri imports run
+        sequentially afterwards because they share one Kolibri database.
+        """
         counts = {"completed": 0, "failed": 0, "skipped": 0}
         total_bytes = 0
         errors: Dict[str, str] = {}
         zims_changed = False
 
+        items: List[ResourceItem] = []
         for item_id in item_ids:
             item = self.catalog.get_by_id(item_id)
-            if not item:
+            if item:
+                items.append(item)
+            else:
                 errors[item_id] = "Item not found in catalog"
                 counts["failed"] += 1
-                continue
 
+        def run_one(item: ResourceItem) -> Tuple[str, DownloadResult]:
             try:
                 if item.format == "kolibri":
-                    status, result = self._sync_kolibri(item, force_update)
-                else:
-                    status, result = self._sync_download(item, force_update, progress_callback)
+                    return self._sync_kolibri(item, force_update)
+                return self._sync_download(item, force_update, progress_callback)
             except Exception as e:  # noqa: BLE001 - isolate per-item failures (corrupt archive, disk full)
-                status = "failed"
-                result = DownloadResult(url=item.upstream_url, destination=self.get_destination_for_item(item),
-                                        success=False, error_message=f"{type(e).__name__}: {e}")
+                return "failed", DownloadResult(url=item.upstream_url, destination=self.get_destination_for_item(item),
+                                                success=False, error_message=f"{type(e).__name__}: {e}")
 
+        def record(item: ResourceItem, status: str, result: DownloadResult) -> None:
+            nonlocal total_bytes, zims_changed
             counts[status] += 1
             if status == "failed":
                 errors[item.id] = result.error_message or "Download failed"
             elif status == "completed":
                 total_bytes += result.bytes_downloaded
                 zims_changed = zims_changed or item.format == "zim"
-
             if item_completed_callback:
                 item_completed_callback(item, result)
+
+        downloads = [i for i in items if i.format != "kolibri"]
+        workers = max(1, int(self.config.max_concurrent_downloads or 1))
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="vault-sync") as pool:
+            futures = {pool.submit(run_one, item): item for item in downloads}
+            for future in as_completed(futures):
+                record(futures[future], *future.result())
+        for item in (i for i in items if i.format == "kolibri"):
+            record(item, *run_one(item))
 
         if zims_changed and self.config.enable_kiwix_indexing:
             from offline_vault.server import rebuild_kiwix_library

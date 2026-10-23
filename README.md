@@ -20,17 +20,21 @@ Offline Vault curates, downloads, verifies, updates and serves offline copies of
   - `kolibri`: imports a Kolibri Studio channel by its channel ID.
   - `oci`: extracts a web app from the top layer of an official Docker Hub image (layer verified by its SHA-256 digest).
   - `fdroid`: the APK F-Droid currently suggests for a package.
-  - `url`: a fixed HTTPS download.
+  - `index`: the newest matching file in an HTTPS directory listing (e.g. Falstad's CircuitJS1 bundles).
+  - `url`: a fixed HTTPS download; updates are detected through the server's ETag or Last-Modified.
+- **Self-contained updates**: `offline-vault refresh` (or `R` in the TUI) re-reads the Kiwix and Kolibri indexes, GitHub releases, Docker images and F-Droid, and writes a per-user catalog with current versions and sizes. No maintainer tools or tokens needed; items that cannot be reached keep their shipped values. Syncing always resolves the newest release regardless.
 - **Verified downloads**:
   - File signature check per format (ZIM, ZIP/EPUB, tar, Mapsforge): HTML error pages are rejected instead of being saved.
   - SHA-256 verification wherever upstream publishes it (Kiwix `.sha256` files, GitHub release asset digests, Docker layer digests). Set `GITHUB_TOKEN` (or `GH_TOKEN`) to avoid GitHub's anonymous API limit of 60 requests per hour, which otherwise drops asset digests.
-  - `aria2c` multi-connection downloads (follows Kiwix metalinks: mirrors plus aria2's own hash checks), with a clean fallback to a resumable Python downloader.
+  - `aria2c` multi-connection downloads (follows Kiwix metalinks: mirrors plus aria2's own hash checks), with a clean fallback to a resumable Python downloader that retries rate limits (HTTP 429/503, honouring `Retry-After`).
+  - Several items download in parallel (`max_concurrent_downloads`, default 2); Kolibri imports run one after another.
 - **Safe, atomic updates**:
   - Canonical versionless names (`wiki/wikipedia_en_top.zim`, `tools/cyberchef_suite/`) so reader bookmarks survive updates.
   - A manifest (`<vault>/.offline-vault/manifest.json`) records URL, checksum and size: unchanged items are skipped, items with a newer upstream release are updated.
   - Files are replaced only after a verified download; web apps are extracted into a staging folder and swapped in. Nothing outside an item's own path is ever deleted.
   - Archive extraction drops symlinks, device files, absolute paths and `..` traversal, and checks free space first.
-- **Local serving, localhost only**: static portal and web apps, Kiwix (`kiwix-serve`) and Kolibri listen on `127.0.0.1`; other hosts are refused, so nothing is exposed on Wi-Fi or a hotspot.
+- **Local serving, localhost only**: static portal and web apps, Kiwix (`kiwix-serve`) and Kolibri listen on `127.0.0.1`; other hosts are refused, so nothing is exposed on Wi-Fi or a hotspot. No directory listings; the manifest, partial downloads and logs are never served.
+- **Languages**: the TUI speaks English, German, Spanish and Bosnian (`locale` in the config; the long help text stays English).
 - **Privacy patches**: catalog-defined edits applied to upstream web app builds before install (strip analytics, drop CDN font loading, set English defaults). A patch that no longer matches fails the install and keeps the previous version, so a tracker can never silently return after an update.
 
 ---
@@ -171,6 +175,7 @@ offline-vault        # or: offline-vault tui
 | `A` | Select all visible resources |
 | `C` | Clear all selections |
 | `F` / `/` | Focus the search bar |
+| `R` | Refresh the catalog (latest versions and sizes) |
 | `Q` | Quit |
 
 ### Non-interactive CLI
@@ -180,6 +185,7 @@ offline-vault list                              # whole catalog
 offline-vault list --category tools             # filters: --category, --language, --format, --query, --tag
 offline-vault status                            # vault path, free space, installed items
 offline-vault status --vault-dir /sdcard/Download/offline_vault
+offline-vault refresh                           # update catalog versions and sizes (--force re-downloads indexes)
 
 offline-vault sync --category tools             # download missing or outdated items
 offline-vault sync --category wiki --language bs  # filters combine
@@ -204,28 +210,36 @@ offline-vault serve --port 9000                # custom port; servers always bin
 
 ```yaml
 vault_dir: /home/user/offline_vault   # or /sdcard/Download/offline_vault on Termux
+locale: de                            # en, de, es or bs
+max_concurrent_downloads: 2           # items downloaded in parallel
 prefer_aria2: true
 aria2_split_connections: 4
 enable_kiwix_indexing: true           # rebuild library.xml with kiwix-manage after ZIM changes
 ```
 
+Data locations: refreshed catalog `~/.local/share/offline-vault/catalog.yaml`, Kolibri home `~/.local/share/offline-vault/kolibri-home`, index cache `~/.cache/offline-vault/` (XDG variables are honoured). Set `GITHUB_TOKEN` to lift GitHub's anonymous API limit.
+
 ---
 
 ## 🗂️ Maintaining the Catalog
 
-`src/offline_vault/data/catalog.yaml` is generated; edit `scripts/catalog_spec.yaml` instead. The spec lists each item's typed source (Kiwix book and flavour, GitHub repo and asset pattern, Docker image, F-Droid package, Kolibri channel or URL), its patches, and the `starter:` set. The generator fills `upstream_url` and `size_mb` from live upstream data and fails on anything it cannot resolve.
+`src/offline_vault/data/catalog.yaml` is the packaged (offline) catalog and is generated; edit `src/offline_vault/data/catalog_spec.yaml` instead. The spec lists each item's typed source (Kiwix book and flavour, GitHub repo and asset pattern, Docker image, F-Droid package, Kolibri channel, directory listing or URL), its patches, and the `starter:` set. The same builder powers `offline-vault refresh` (tolerant, per user) and the maintainer script (strict: fails on anything it cannot resolve).
 
 ```bash
 GITHUB_TOKEN=$(gh auth token) .venv/bin/python scripts/generate_catalog.py   # --refresh re-downloads indexes
 pytest tests/
 ```
 
-The Kiwix and Kolibri indexes (about 25 MB) are cached for 24 hours in `.scratch/catalog-inputs/` (git-ignored). Pin `size_mb` in the spec for archives whose installed size differs from the download or whose server sends no length. `tests/test_catalog_generator.py` fails if the committed catalog and spec drift apart.
+The script caches the Kiwix and Kolibri indexes (about 25 MB) for 24 hours in `.scratch/catalog-inputs/` (git-ignored). Pin `size_mb` in the spec for archives whose installed size differs from the download, whose server sends no length, or that are small and static (avoids requests to rate-limited hosts). Each generated catalog carries the spec's `spec_digest`; a refreshed user catalog is only used while it matches the installed app's spec, and `tests/test_catalog_builder.py` fails if the packaged catalog and spec drift apart.
 
 ---
 
-## 🧪 Running Tests
+## 🧪 Tests, Dependencies & Quality Gate
 
 ```bash
-pytest tests/
+.venv/bin/python -m pytest -q        # tests
+scripts/check.sh                     # tests + lockfile consistency + pip-audit (run before committing)
+scripts/update-locks.sh              # upgrade the hash-pinned locks to the latest releases
 ```
+
+Dependencies are pinned with hashes in `requirements.lock` (runtime), `requirements-dev.lock` (tests) and `requirements-build.lock` (setuptools); `run.sh` installs only from them with `--require-hashes`. CI (`.github/workflows/ci.yml`) runs the tests on Python 3.10 and 3.13 and `pip-audit` on every push, pull request and weekly.

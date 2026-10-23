@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -15,7 +16,7 @@ import yaml
 ALLOWED_SCHEMES = {"https"}
 VALID_FORMATS = {"zim", "map", "epub", "tar", "zip", "kolibri", "apk", "z5", "z8"}
 VALID_CATEGORIES = {"admin", "dev", "tutorials", "wiki", "survival", "maps", "qna", "fun", "tools", "apps"}
-VALID_SOURCES = {"url", "kiwix", "github", "kolibri", "oci", "fdroid"}
+VALID_SOURCES = {"url", "kiwix", "github", "kolibri", "oci", "fdroid", "index"}
 VALID_KIWIX_FLAVOURS = {"", "maxi", "nopic", "mini"}
 ARCHIVE_FORMATS = {"zip", "tar"}
 
@@ -29,8 +30,25 @@ _ANDROID_PACKAGE_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9
 
 
 def get_default_catalog_file() -> Path:
-    """Return path to packaged catalog.yaml."""
+    """Return path to packaged catalog.yaml (offline fallback shipped with the app)."""
     return Path(__file__).parent / "data" / "catalog.yaml"
+
+
+def get_spec_file() -> Path:
+    """Return path to the packaged catalog spec (source of truth for catalog contents)."""
+    return Path(__file__).parent / "data" / "catalog_spec.yaml"
+
+
+def get_user_catalog_file() -> Path:
+    """Per-user catalog written by `offline-vault refresh` (XDG_DATA_HOME)."""
+    base = os.environ.get("XDG_DATA_HOME") or str(Path.home() / ".local" / "share")
+    return Path(base) / "offline-vault" / "catalog.yaml"
+
+
+def spec_digest(spec_text: Optional[str] = None) -> str:
+    """Short fingerprint of the catalog spec; ties a generated catalog to the spec it came from."""
+    text = spec_text if spec_text is not None else get_spec_file().read_text(encoding="utf-8")
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
 
 
 @dataclass
@@ -55,6 +73,8 @@ class ResourceItem:
     oci_image: str = ""
     oci_tag: str = ""
     fdroid_package: str = ""
+    index_url: str = ""
+    index_pattern: str = ""
     entrypoint: str = ""
     extract_subdir: str = ""
     serve_root: bool = False
@@ -147,6 +167,8 @@ def _validate_source(data: Dict[str, Any], res_id: str, fmt: str) -> Dict[str, s
         "oci_image": str(data.get("oci_image", "")),
         "oci_tag": str(data.get("oci_tag", "latest" if source == "oci" else "")),
         "fdroid_package": str(data.get("fdroid_package", "")),
+        "index_url": str(data.get("index_url", "")),
+        "index_pattern": str(data.get("index_pattern", "")),
     }
 
     if source == "kiwix":
@@ -180,6 +202,16 @@ def _validate_source(data: Dict[str, Any], res_id: str, fmt: str) -> Dict[str, s
             raise ValueError(f"Missing or invalid fdroid_package in resource {res_id}")
         if fmt != "apk":
             raise ValueError(f"F-Droid source requires format 'apk' in resource {res_id}")
+    elif source == "index":
+        parsed_index = urlparse(fields["index_url"])
+        if parsed_index.scheme not in ALLOWED_SCHEMES or not parsed_index.netloc:
+            raise ValueError(f"index_url must be an HTTPS URL in resource {res_id}")
+        try:
+            re.compile(fields["index_pattern"])
+        except re.error as exc:
+            raise ValueError(f"Invalid index_pattern in resource {res_id}: {exc}") from exc
+        if not fields["index_pattern"]:
+            raise ValueError(f"Missing index_pattern in resource {res_id}")
     if fmt == "kolibri" and source != "kolibri":
         raise ValueError(f"Format 'kolibri' requires source 'kolibri' in resource {res_id}")
     return fields
@@ -295,22 +327,39 @@ class ResourceCatalog:
         return total
 
 
-def load_catalog(catalog_path: Optional[Path] = None) -> ResourceCatalog:
-    """Load and validate resource catalog from YAML file."""
-    path = catalog_path or get_default_catalog_file()
-    if not path.is_file():
-        raise FileNotFoundError(f"Catalog file not found: {path}")
-
+def _read_catalog(path: Path) -> ResourceCatalog:
     with open(path, "r", encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
 
-    raw_resources = data.get("resources", [])
+    raw_resources = data.get("resources", []) if isinstance(data, dict) else None
     if not isinstance(raw_resources, list):
         raise ValueError("Invalid catalog format: 'resources' must be a list")
+    return ResourceCatalog([validate_resource_item(raw) for raw in raw_resources])
 
-    validated_items: List[ResourceItem] = []
-    for raw in raw_resources:
-        item = validate_resource_item(raw)
-        validated_items.append(item)
 
-    return ResourceCatalog(validated_items)
+def _user_catalog_is_current(path: Path) -> bool:
+    """A refreshed catalog is only used while it was built from the spec this app ships."""
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return False
+    return isinstance(data, dict) and data.get("spec_digest") == spec_digest()
+
+
+def load_catalog(catalog_path: Optional[Path] = None) -> ResourceCatalog:
+    """Load and validate a catalog: the given file, else a current refreshed one, else the packaged one."""
+    if catalog_path is not None:
+        if not catalog_path.is_file():
+            raise FileNotFoundError(f"Catalog file not found: {catalog_path}")
+        return _read_catalog(catalog_path)
+
+    user_file = get_user_catalog_file()
+    if user_file.is_file() and _user_catalog_is_current(user_file):
+        try:
+            return _read_catalog(user_file)
+        except (ValueError, TypeError, yaml.YAMLError):
+            pass  # Corrupt refresh output: fall back to the packaged catalog
+    path = get_default_catalog_file()
+    if not path.is_file():
+        raise FileNotFoundError(f"Catalog file not found: {path}")
+    return _read_catalog(path)

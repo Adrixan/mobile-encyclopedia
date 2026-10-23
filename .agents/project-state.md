@@ -40,5 +40,7 @@
 - **Sprint 6**: Android-first catalog v2 (69 real items: Kiwix ZIMs incl. DevDocs, prebuilt web apps, Kolibri channels), safe sync engine (manifest, signature + SHA-256 checks, safe extraction, no collateral pruning), Kolibri import, root-served apps (Done: 16 pts)
 - **Sprint 7**: Tool replacements (Excalidraw, Drawnix via `oci`; periodic table; Astronomy Engine), `apps` category with APKs (`fdroid` source), personal material (German, infosec, outdoors, stoics, IF), phone starter set (`--tag starter`, ~14 GB) (Done: 11 pts)
 - **Sprint 8**: Catalog-defined privacy/language patches (Excalidraw, Drawnix, periodic table), localhost-only static/Kiwix/Kolibri servers (Done: 5 pts)
-- **Total Velocity Delivered**: 84 Story Points. 113 automated tests passing.
-- **Catalog maintenance**: `scripts/catalog_spec.yaml` is the source of truth; `scripts/generate_catalog.py` regenerates `src/offline_vault/data/catalog.yaml` from live upstream data (see README "Maintaining the Catalog"). Catalog: 134 items, 114 of them <= 2 GB.
+- **Sprint 9**: Self-contained catalog refresh (`offline-vault refresh`, TUI `R`), fixed-URL update detection and `index` source, server hardening, hash-pinned locks with audit gate and CI, i18n (en/de/es/bs), concurrent downloads, branded portal, project AGENTS.md (Done: 19 pts)
+- **Total Velocity Delivered**: 103 Story Points. 137 automated tests passing.
+- **Catalog maintenance**: `src/offline_vault/data/catalog_spec.yaml` is the source of truth; users run `offline-vault refresh`, maintainers `scripts/generate_catalog.py` (strict) to regenerate the packaged catalog (see README "Maintaining the Catalog").
+- **Dependencies**: hash-pinned `requirements*.lock`; gate `scripts/check.sh`; CI `.github/workflows/ci.yml`. Catalog: 134 items, 114 of them <= 2 GB.

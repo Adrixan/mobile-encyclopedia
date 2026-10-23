@@ -49,6 +49,10 @@ def build_parser() -> argparse.ArgumentParser:
     sync_p.add_argument("--force", "--update", "-u", action="store_true", help="Force update/re-download and prune old versions")
     sync_p.add_argument("--vault-dir", help="Override vault directory")
 
+    # Refresh
+    refresh_p = subparsers.add_parser("refresh", help="Refresh the catalog (latest versions and sizes) from upstream indexes")
+    refresh_p.add_argument("--force", action="store_true", help="Re-download the Kiwix and Kolibri indexes even if cached today")
+
     # Serve
     serve_p = subparsers.add_parser("serve", help="Launch local Kolibri LMS, Kiwix, or static HTTP server")
     serve_p.add_argument("--kolibri", action="store_true", help="Start Kolibri offline LMS server")
@@ -157,6 +161,25 @@ def handle_sync(args: argparse.Namespace, config: VaultConfig, catalog: Resource
     return 0 if summary.failed == 0 else 1
 
 
+def handle_refresh(args: argparse.Namespace, console: Console) -> int:
+    """Handle 'refresh': rebuild the per-user catalog from live upstream data."""
+    from offline_vault.catalog import get_user_catalog_file
+    from offline_vault.catalog_builder import GenerationError, refresh_user_catalog
+
+    console.print("[bold cyan]Refreshing catalog from upstream indexes...[/bold cyan]")
+    try:
+        report = refresh_user_catalog(force=args.force)
+    except GenerationError as e:
+        console.print(f"[bold red]Refresh failed: {e}[/bold red]")
+        return 1
+    console.print(f"[bold green]Catalog refreshed:[/bold green] {report.items} items -> {get_user_catalog_file()}")
+    if report.failed:
+        console.print(f"[yellow]{len(report.failed)} items kept their packaged values:[/yellow]")
+        for item_id, reason in report.failed:
+            console.print(f" - {item_id}: {reason}")
+    return 0
+
+
 def handle_serve(args: argparse.Namespace, config: VaultConfig, console: Console) -> int:
     """Handle 'serve' subcommand supporting Kolibri LMS, Kiwix, and Static docs."""
     from offline_vault.server import (
@@ -228,6 +251,8 @@ def run_cli(argv: Optional[List[str]] = None) -> int:
         return handle_sync(args, config, catalog, console)
     elif args.command == "serve":
         return handle_serve(args, config, console)
+    elif args.command == "refresh":
+        return handle_refresh(args, console)
     else:
         parser.print_help()
         return 0

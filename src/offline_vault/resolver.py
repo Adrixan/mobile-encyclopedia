@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import os
 import re
+import threading
 import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
-from urllib.parse import urlparse
+from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urljoin, urlparse
 
 import requests
 
@@ -46,6 +47,8 @@ class ResolvedSource:
     url: str
     sha256: Optional[str] = None
     size_bytes: Optional[int] = None
+    # Upstream validator (ETag, or Last-Modified plus length) for URLs that never change name
+    version: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -118,13 +121,27 @@ class Resolver:
         self.library_max_age = library_max_age
         self.timeout = timeout
         self._books: Optional[Dict[Tuple[str, str], KiwixBook]] = None
+        self._books_lock = threading.Lock()
 
-    def _get(self, url: str, headers: Optional[Dict[str, str]] = None, allow_redirects: bool = True) -> Any:
+    def _get(
+        self,
+        url: str,
+        headers: Optional[Dict[str, str]] = None,
+        allow_redirects: bool = True,
+        stream: bool = False,
+    ) -> Any:
         merged = {"User-Agent": USER_AGENT, **(headers or {})}
-        return self.session.get(url, headers=merged, timeout=self.timeout, allow_redirects=allow_redirects)
+        kwargs: Dict[str, Any] = {"headers": merged, "timeout": self.timeout, "allow_redirects": allow_redirects}
+        if stream:
+            kwargs["stream"] = True
+        return self.session.get(url, **kwargs)
 
     def kiwix_books(self) -> Dict[Tuple[str, str], KiwixBook]:
         """Return the Kiwix library index, using a disk cache to spare mobile data."""
+        with self._books_lock:
+            return self._load_kiwix_books()
+
+    def _load_kiwix_books(self) -> Dict[Tuple[str, str], KiwixBook]:
         if self._books is not None:
             return self._books
 
@@ -229,6 +246,61 @@ class Resolver:
             pass
         return ResolvedSource(url=item.upstream_url)
 
+    @staticmethod
+    def _version_from_headers(headers: Any) -> Optional[str]:
+        etag = headers.get("ETag")
+        total = headers.get("Content-Range", "").rpartition("/")[2] or headers.get("Content-Length", "")
+        last_modified = headers.get("Last-Modified")
+        return etag or (f"{last_modified}|{total}" if last_modified else None)
+
+    def _resolve_url(self, item: ResourceItem) -> ResolvedSource:
+        """Fixed URL: read its validator with HEAD, else a one-byte ranged GET (some servers ignore HEAD).
+
+        HEAD first keeps load low on hosts that rate-limit downloads (each sync probes once per item).
+        """
+        head = getattr(self.session, "head", None)
+        if head is not None:
+            try:
+                resp = head(item.upstream_url, headers={"User-Agent": USER_AGENT}, timeout=15, allow_redirects=True)
+                if resp.status_code == 200:
+                    version = self._version_from_headers(resp.headers)
+                    if version:
+                        return ResolvedSource(url=item.upstream_url, version=version)
+            except requests.RequestException:
+                pass
+        try:
+            resp = self._get(item.upstream_url, {"Range": "bytes=0-0"}, stream=True)
+            try:
+                if resp.status_code not in (200, 206):
+                    return ResolvedSource(url=item.upstream_url)
+                return ResolvedSource(url=item.upstream_url, version=self._version_from_headers(resp.headers))
+            finally:
+                close = getattr(resp, "close", None)
+                if close:
+                    close()
+        except requests.RequestException:
+            return ResolvedSource(url=item.upstream_url)
+
+    def _resolve_index(self, item: ResourceItem) -> ResolvedSource:
+        """Newest file in an HTML directory listing whose name matches the pattern."""
+        pattern = re.compile(item.index_pattern)
+        try:
+            resp = self._get(item.index_url)
+            if resp.status_code != 200:
+                return ResolvedSource(url=item.upstream_url)
+            names = {href.rsplit("/", 1)[-1] for href in re.findall(r'href="([^"?#]+)"', resp.text)}
+            matches = [n for n in names if pattern.fullmatch(n)]
+        except requests.RequestException:
+            return ResolvedSource(url=item.upstream_url)
+        if not matches:
+            return ResolvedSource(url=item.upstream_url)
+
+        def natural_key(name: str) -> List[Any]:
+            return [int(part) if part.isdigit() else part for part in re.split(r"(\d+)", name)]
+
+        url = urljoin(item.index_url, max(matches, key=natural_key))
+        return ResolvedSource(url=url) if _is_https(url) else ResolvedSource(url=item.upstream_url)
+
     def resolve(self, item: ResourceItem) -> ResolvedSource:
         """Resolve an item to the newest download; falls back to the catalog URL."""
         if item.source == "kiwix":
@@ -239,4 +311,8 @@ class Resolver:
             return self._resolve_oci(item)
         if item.source == "fdroid":
             return self._resolve_fdroid(item)
+        if item.source == "index":
+            return self._resolve_index(item)
+        if item.source == "url":
+            return self._resolve_url(item)
         return ResolvedSource(url=item.upstream_url)
