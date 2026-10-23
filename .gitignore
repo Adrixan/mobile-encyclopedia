@@ -11,6 +11,7 @@ Thumbs.db
 # Scratch & Logs
 *.log
 scratch/
+.scratch/
 tmp/
 
 # Python & Virtualenv

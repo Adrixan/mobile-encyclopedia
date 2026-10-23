@@ -211,6 +211,19 @@ enable_kiwix_indexing: true           # rebuild library.xml with kiwix-manage af
 
 ---
 
+## 🗂️ Maintaining the Catalog
+
+`src/offline_vault/data/catalog.yaml` is generated; edit `scripts/catalog_spec.yaml` instead. The spec lists each item's typed source (Kiwix book and flavour, GitHub repo and asset pattern, Docker image, F-Droid package, Kolibri channel or URL), its patches, and the `starter:` set. The generator fills `upstream_url` and `size_mb` from live upstream data and fails on anything it cannot resolve.
+
+```bash
+GITHUB_TOKEN=$(gh auth token) .venv/bin/python scripts/generate_catalog.py   # --refresh re-downloads indexes
+pytest tests/
+```
+
+The Kiwix and Kolibri indexes (about 25 MB) are cached for 24 hours in `.scratch/catalog-inputs/` (git-ignored). Pin `size_mb` in the spec for archives whose installed size differs from the download or whose server sends no length. `tests/test_catalog_generator.py` fails if the committed catalog and spec drift apart.
+
+---
+
 ## 🧪 Running Tests
 
 ```bash

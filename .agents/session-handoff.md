@@ -19,9 +19,9 @@
 
 ## Exit check (end of session)
 - Peter asked whether web tools are bundled: they are not. The wheel is 58 KB (Python modules, `catalog.yaml`, locales); every tool, ZIM, EPUB, map and APK is fetched from upstream at sync time and patched on the device. Patches are text rules in `catalog.yaml`.
-- Generator usage is documented in `.scratch/README.md` (local only, git-excluded): refresh `library_zim.xml` and `kolibri_channels.json`, then run `gen_catalog.py` with `GH_TOKEN`.
-- State at exit: `main` = `origin/main`, tree clean, no feature branches, 110 tests green. `origin/chore/drop-copilot-kilo` is an older, already merged branch left in place.
+- Catalog generator moved into git (final step of the session): `scripts/generate_catalog.py` (argparse, fetches and caches the Kiwix/Kolibri indexes in `.scratch/catalog-inputs/` for 24 h, reuses the app's Resolver, validates every entry with the app schema, fails loudly) and `scripts/catalog_spec.yaml` (source of truth). A live run reproduced the committed catalog byte for byte apart from the new header. `tests/test_catalog_generator.py` covers offline generation and spec/catalog drift. Usage: README "Maintaining the Catalog".
+- State at exit: `main` = `origin/main`, tree clean, no feature branches, 113 tests green. `origin/chore/drop-copilot-kilo` is an older, already merged branch left in place.
 
 ## Open decisions / next steps
 - Not tested on a device: APK installs from the vault, Kiwix APK scanning the vault folder.
-- Backlog: directory listing, lockfile + audit gate, unused i18n, portal branding, project AGENTS.md, generator into `scripts/` (generator and spec live only in `.scratch/`).
+- Backlog: directory listing, lockfile + audit gate, unused i18n, portal branding, project AGENTS.md.

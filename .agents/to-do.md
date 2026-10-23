@@ -26,9 +26,11 @@
 - [x] 110 tests green; live reinstall of the three patched apps; browser with internet allowed: zero outside requests at startup for Excalidraw, Drawnix, periodic table; English UI; `ss` shows 127.0.0.1 for portal, root-app ports and a real Kolibri 0.19.5; LAN address refused.
 - [x] Found and fixed: `serve --kolibri` failed on a fresh device (KOLIBRI_HOME parent missing).
 
+## Chore (2026-10-23)
+- [x] Catalog generator tracked in git: `scripts/generate_catalog.py` + `scripts/catalog_spec.yaml` (spec is the source of truth); indexes cached in `.scratch/catalog-inputs/`; `tests/test_catalog_generator.py` (offline generator tests + spec/catalog drift check); `.scratch/` in `.gitignore`.
+
 ## Backlog (from the 2026-10-23 review, not in Sprint 6)
 - Periodic table element photos load from third-party hosts when online (not tracking, left as is).
-- Catalog generator (`.scratch/gen_catalog.py` + `catalog_spec.yaml`, local only) could move into `scripts/` so sizes can be refreshed; needs a decision on spec vs. YAML as source of truth.
 - CircuitJS1 URL is version-pinned (Falstad has no "latest" link); GitHub branch archives (OWASP, SQLime) carry no checksum.
 - Kolibri Android "import from folder" with Android scoped storage not tested on a device.
 - Static server still allows directory listing (now localhost only).
