@@ -17,7 +17,7 @@ def test_us5_1_cli_list_command(capsys):
     ret = run_cli(["list"])
     assert ret == 0
     captured = capsys.readouterr()
-    assert "openSUSE" in captured.out or "opensuse" in captured.out.lower()
+    assert "ArchWiki" in captured.out
     assert "Wikipedia" in captured.out or "wikipedia" in captured.out.lower()
 
 
@@ -25,7 +25,7 @@ def test_us5_1_cli_list_filter_category(capsys):
     ret = run_cli(["list", "--category", "admin"])
     assert ret == 0
     captured = capsys.readouterr()
-    assert "openSUSE" in captured.out or "ArchWiki" in captured.out
+    assert "ArchWiki" in captured.out
 
 
 def test_us5_1_cli_list_filter_language(capsys):
@@ -52,3 +52,39 @@ def test_cli_serve_subcommand_routes_to_static_server(tmp_path):
         _, kwargs = mock_static.call_args
         assert kwargs["port"] == 9090
         assert kwargs["vault_dir"] == tmp_path.resolve()
+
+
+def test_status_honours_vault_dir_override_without_creating_dirs(tmp_path, monkeypatch, capsys):
+    from offline_vault import cli
+
+    configured = tmp_path / "configured"
+    override = tmp_path / "override"
+    override.mkdir()
+    (override / "wiki").mkdir()
+    (override / "wiki" / "wikipedia_en_top.zim").write_bytes(b"ZIM\x04data")
+    monkeypatch.setattr(cli, "load_config", lambda: VaultConfig(vault_dir=str(configured)))
+
+    assert run_cli(["status", "--vault-dir", str(override)]) == 0
+    out = capsys.readouterr().out
+    assert str(override) in out
+    assert "Downloaded Resources: 1" in out
+    assert not configured.exists()
+    assert not (override / "admin").exists()
+
+
+def test_sync_combines_category_and_language_filters(tmp_path, monkeypatch):
+    from offline_vault import cli
+
+    captured = {}
+
+    def fake_sync(self, item_ids, force_update=False, **kwargs):
+        captured["ids"] = set(item_ids)
+        from offline_vault.sync import SyncSummary
+        return SyncSummary(len(captured["ids"]), 0, 0, len(captured["ids"]), 0, {})
+
+    monkeypatch.setattr("offline_vault.sync.SyncManager.sync_items", fake_sync)
+    assert run_cli(["sync", "--category", "wiki", "--language", "bs", "--vault-dir", str(tmp_path)]) == 0
+    from offline_vault.catalog import load_catalog
+    catalog = load_catalog()
+    expected = {i.id for i in catalog.items if i.category == "wiki" and i.language == "bs"}
+    assert expected and captured["ids"] == expected

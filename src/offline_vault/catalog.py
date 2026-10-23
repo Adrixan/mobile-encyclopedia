@@ -11,8 +11,15 @@ from urllib.parse import urlparse
 import yaml
 
 ALLOWED_SCHEMES = {"https"}
-VALID_FORMATS = {"zim", "docset", "map", "epub", "html", "tar", "zip", "kolibri"}
+VALID_FORMATS = {"zim", "map", "epub", "tar", "zip", "kolibri"}
 VALID_CATEGORIES = {"admin", "dev", "tutorials", "wiki", "survival", "maps", "qna", "fun", "tools"}
+VALID_SOURCES = {"url", "kiwix", "github", "kolibri"}
+VALID_KIWIX_FLAVOURS = {"", "maxi", "nopic", "mini"}
+ARCHIVE_FORMATS = {"zip", "tar"}
+
+_KIWIX_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9._\-]*$")
+_GITHUB_REPO_RE = re.compile(r"^[A-Za-z0-9_.\-]+/[A-Za-z0-9_.\-]+$")
+_KOLIBRI_CHANNEL_RE = re.compile(r"^[0-9a-f]{32}$")
 
 
 def get_default_catalog_file() -> Path:
@@ -33,7 +40,20 @@ class ResourceItem:
     upstream_url: str
     description: str = ""
     tags: List[str] = field(default_factory=list)
-    target_subfolder: str = "zims"
+    source: str = "url"
+    kiwix_name: str = ""
+    kiwix_flavour: str = ""
+    github_repo: str = ""
+    asset_pattern: str = ""
+    kolibri_channel: str = ""
+    entrypoint: str = ""
+    extract_subdir: str = ""
+    serve_root: bool = False
+
+    @property
+    def is_archive(self) -> bool:
+        """True if the download is a web app archive that is extracted into a folder."""
+        return self.format in ARCHIVE_FORMATS
 
     def matches_query(self, query: str) -> bool:
         """Check if item matches search query."""
@@ -55,6 +75,59 @@ class ResourceItem:
             or q in self.description.lower()
             or any(q in t.lower() for t in self.tags)
         )
+
+
+def _validate_relative_path(value: str, field_name: str, allow_query: bool = False) -> str:
+    """Reject absolute paths, traversal and control characters in archive-relative paths."""
+    path_part = value.split("?", 1)[0] if allow_query else value
+    if (
+        "\x00" in value
+        or "\\" in value
+        or path_part.startswith("/")
+        or ".." in path_part.split("/")
+        or (not allow_query and "?" in value)
+    ):
+        raise ValueError(f"Invalid {field_name}: {value}")
+    return value
+
+
+def _validate_source(data: Dict[str, Any], res_id: str, fmt: str) -> Dict[str, str]:
+    """Validate typed upstream source fields and return them normalized."""
+    source = str(data.get("source", "url")).lower()
+    if source not in VALID_SOURCES:
+        raise ValueError(f"Invalid source '{source}' in resource {res_id}")
+
+    fields = {
+        "source": source,
+        "kiwix_name": str(data.get("kiwix_name", "")),
+        "kiwix_flavour": str(data.get("kiwix_flavour", "")),
+        "github_repo": str(data.get("github_repo", "")),
+        "asset_pattern": str(data.get("asset_pattern", "")),
+        "kolibri_channel": str(data.get("kolibri_channel", "")),
+    }
+
+    if source == "kiwix":
+        if not _KIWIX_NAME_RE.match(fields["kiwix_name"]):
+            raise ValueError(f"Missing or invalid kiwix_name in resource {res_id}")
+        if fields["kiwix_flavour"] not in VALID_KIWIX_FLAVOURS:
+            raise ValueError(f"Invalid kiwix flavour '{fields['kiwix_flavour']}' in resource {res_id}")
+    elif source == "github":
+        if not _GITHUB_REPO_RE.match(fields["github_repo"]):
+            raise ValueError(f"Missing or invalid github_repo in resource {res_id}")
+        try:
+            re.compile(fields["asset_pattern"])
+        except re.error as exc:
+            raise ValueError(f"Invalid asset_pattern in resource {res_id}: {exc}") from exc
+        if not fields["asset_pattern"]:
+            raise ValueError(f"Missing asset_pattern in resource {res_id}")
+    elif source == "kolibri":
+        if not _KOLIBRI_CHANNEL_RE.match(fields["kolibri_channel"]):
+            raise ValueError(f"Missing or invalid kolibri_channel in resource {res_id}")
+        if fmt != "kolibri":
+            raise ValueError(f"Kolibri source requires format 'kolibri' in resource {res_id}")
+    if fmt == "kolibri" and source != "kolibri":
+        raise ValueError(f"Format 'kolibri' requires source 'kolibri' in resource {res_id}")
+    return fields
 
 
 def validate_resource_item(data: Dict[str, Any]) -> ResourceItem:
@@ -87,6 +160,13 @@ def validate_resource_item(data: Dict[str, Any]) -> ResourceItem:
     if not re.match(r"^[a-zA-Z0-9_\-]+$", res_id):
         raise ValueError(f"Invalid characters in resource ID: {res_id}")
 
+    source_fields = _validate_source(data, res_id, fmt)
+    entrypoint = _validate_relative_path(str(data.get("entrypoint", "")), "entrypoint", allow_query=True)
+    extract_subdir = _validate_relative_path(str(data.get("extract_subdir", "")).rstrip("/"), "extract_subdir")
+    serve_root = data.get("serve_root", False)
+    if not isinstance(serve_root, bool):
+        raise ValueError(f"serve_root must be true or false in resource {res_id}")
+
     return ResourceItem(
         id=res_id,
         name=str(data["name"]),
@@ -97,7 +177,10 @@ def validate_resource_item(data: Dict[str, Any]) -> ResourceItem:
         upstream_url=url,
         description=str(data.get("description", "")),
         tags=[str(t) for t in data.get("tags", [])],
-        target_subfolder=str(data.get("target_subfolder", "zims")),
+        entrypoint=entrypoint,
+        extract_subdir=extract_subdir,
+        serve_root=serve_root,
+        **source_fields,
     )
 
 

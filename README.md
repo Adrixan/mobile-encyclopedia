@@ -1,97 +1,104 @@
 # Offline Vault 📚⚡
 
-A lightweight, cross-platform offline knowledge manager and synchronization engine designed for **Linux (PC/Server)** and **Android (Termux)**.
+A lightweight, cross-platform offline knowledge manager for **Linux (PC/Server)** and **Android (Termux)**.
 
-Offline Vault allows you to curate, download, update, and serve offline copies of encyclopedias, developer docsets, system administration guides, interactive LMS courses (Kolibri), standalone offline web tools (CyberChef, IT-Tools, CircuitJS1, Draw.io, SQLime, Ptable, MathGrapher, SunCalc, Excalidraw), emergency & survival manuals, multilingual reference materials, maps, and comics with an interactive **Textual TUI** featuring real-time disk budget trade-off calculations.
+Offline Vault curates, downloads, verifies, updates and serves offline copies of encyclopedias, developer references (DevDocs), system administration wikis, courses (Kiwix ZIMs and Kolibri channels), prebuilt offline web tools (CyberChef, IT-Tools, draw.io, CircuitJS1, SQLime, GeoGebra), health, repair and survival manuals, multilingual references, maps, books and comics, with an interactive **Textual TUI** featuring a live disk budget meter.
+
+**Android first:** every catalog item is usable on Android, either through an Android app that reads the vault folder or through Termux (`offline-vault serve` plus the phone's browser).
 
 ---
 
 ## 🌟 Key Features
 
 - **Interactive Textual TUI**:
-  - Live storage budget meter showing available mount space, total selected size, and projected remaining space.
-  - Granular selection: toggle individual resources or entire categories with the spacebar.
-  - Fast search and filtering by tag, language (`lang:bs`, `lang:es`, `lang:ar`), category (`admin`, `dev`, `tutorials`, `wiki`, `survival`, `maps`, `qna`, `fun`, `tools`), format (`zim`, `kolibri`, `docset`, `epub`, `map`, `zip`, `tar`), or keyword.
-- **Categorized Folder Hierarchy**:
-  - Files are automatically routed into 9 dedicated category directories matching the TUI:
-    `admin/`, `dev/`, `tutorials/`, `wiki/`, `survival/`, `maps/`, `qna/`, `fun/`, `tools/`
-- **Dynamic Latest Version Resolution & Canonical Versionless Naming**:
-  - Automatically queries upstream indexes (Kiwix XML, Kapeli mirrors, GitHub releases) to fetch the newest releases.
-  - Local filenames are clean and versionless (e.g. `xkcd_complete_comics.zim`, `archwiki_en.zim`) so reader app bookmarks never break on updates.
-  - Safe atomic update: old versions are safely pruned **only after** the new version downloads successfully.
-- **Interactive Offline Web Tools (`tools/`)**:
-  - Automatically extracts web apps and creates ready-to-run `index.html` entrypoints for in-browser use.
-- **Interactive LMS (Kolibri) Integration**:
-  - Supports **Kolibri Learning Management System** courses (PhET simulations, Khan Academy STEM, Sikana vocational trades, CK-12 flexbooks).
-  - Launch with 1-click via `offline-vault serve --kolibri`.
-- **High-Throughput Resumable Download Engine**:
-  - Real-time live streaming progress and speed reporting via `aria2c` (`-s 4 -x 4 -k 1M -c`).
-  - Automatic fallback to native Python streaming downloader with HTTP Range header resume support.
-  - Atomic file writes (`.new.tmp` → verified target file).
+  - Live storage budget meter: available mount space, selected size, projected remaining space.
+  - Toggle individual resources with Space; select or clear all visible items.
+  - Search by keyword or prefix: `lang:bs`, `cat:wiki`, `tag:security`; category buttons for `admin`, `dev`, `tutorials`, `wiki`, `survival`, `maps`, `qna`, `fun`, `tools`.
+- **Typed upstream sources, always the latest release**:
+  - `kiwix`: picks the newest ZIM of a Kiwix book (name + flavour) from the Kiwix library index (cached for 24 hours to spare mobile data).
+  - `github`: picks the newest release asset matching a pattern.
+  - `kolibri`: imports a Kolibri Studio channel by its channel ID.
+  - `url`: a fixed HTTPS download.
+- **Verified downloads**:
+  - File signature check per format (ZIM, ZIP/EPUB, tar, Mapsforge): HTML error pages are rejected instead of being saved.
+  - SHA-256 verification wherever upstream publishes it (Kiwix `.sha256` files, GitHub release asset digests).
+  - `aria2c` multi-connection downloads (follows Kiwix metalinks: mirrors plus aria2's own hash checks), with a clean fallback to a resumable Python downloader.
+- **Safe, atomic updates**:
+  - Canonical versionless names (`wiki/wikipedia_en_top.zim`, `tools/cyberchef_suite/`) so reader bookmarks survive updates.
+  - A manifest (`<vault>/.offline-vault/manifest.json`) records URL, checksum and size: unchanged items are skipped, items with a newer upstream release are updated.
+  - Files are replaced only after a verified download; web apps are extracted into a staging folder and swapped in. Nothing outside an item's own path is ever deleted.
+  - Archive extraction drops symlinks, device files, absolute paths and `..` traversal, and checks free space first.
+- **Local serving for phones, tablets and PCs**: static portal and web apps, Kiwix (`kiwix-serve`), Kolibri.
 
 ---
 
-## 🧰 Standalone Offline Web Tools Matrix (`tools/`)
+## 📂 Vault Layout
 
-All interactive tools are extracted into `<vault>/tools/<tool_id>/` and can be opened in any web browser or served via `offline-vault serve`:
-
-| Tool | ID | Format | Size | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| **CyberChef** | `cyberchef_suite` | `.zip` | ~75 MB | The Cyber Swiss Army Knife: encryption, decoding, regex, binary analysis |
-| **IT-Tools** | `it_tools_suite` | `.zip` | ~40 MB | 80+ client-side utilities: CIDR subnet calc, chmod, cron, JWT, JSON/YAML |
-| **CircuitJS1** | `circuitjs_simulator` | `.tar` | ~15 MB | Falstad real-time electronic circuit simulator (op-amps, 555, RLC, logic) |
-| **Draw.io** | `drawio_offline_suite` | `.tar` | ~65 MB | Offline diagramming: cloud architectures, network topologies, UML, schematics |
-| **SQLime** | `sqlime_sqlite_studio` | `.tar` | ~12 MB | In-browser SQLite WASM database studio & SQL query runner |
-| **Ptable** | `ptable_periodic_interactive` | `.tar` | ~12 MB | Dynamic interactive periodic table with 3D electron orbitals & isotopes |
-| **MathGrapher** | `geogebra_math_grapher` | `.tar` | ~25 MB | Interactive 2D/3D calculus & algebra function plotting suite |
-| **SunCalc** | `suncalc_solar_planner` | `.tar` | ~5 MB | Solar position, azimuth, shadow angles & ephemeris calculator |
-| **Excalidraw** | `excalidraw_whiteboard` | `.tar` | ~35 MB | Virtual whiteboard for hand-drawn system sketching & architecture drafts |
+```
+<vault>/
+├── admin/ dev/ wiki/ survival/ maps/ qna/ fun/   *.zim, *.epub, *.map, extracted sites
+├── tutorials/
+│   └── kolibri/KOLIBRI_DATA/content/             Kolibri channels (export-compatible layout)
+├── tools/<tool_id>/index.html                    prebuilt offline web apps
+├── library.xml                                   Kiwix library (rebuilt after ZIM changes)
+├── index.html                                    portal written by `offline-vault serve`
+└── .offline-vault/manifest.json                  what is installed, from where, with which checksum
+```
 
 ---
 
-## 📱 Android Reader Apps Guide
+## 🧰 Prebuilt Offline Web Tools (`tools/`)
 
-When running Offline Vault on Android (or copying your offline vault from PC to Android storage at `/sdcard/Download/offline_vault/`), use the following recommended open-source apps to view each format:
+Only prebuilt, deployable releases are used; nothing needs a build step on the phone.
 
-| Content Type | Format | Recommended Android App | Download Source | Folder Location in Vault |
-| :--- | :--- | :--- | :--- | :--- |
-| **Encyclopedias & Wikis** | `.zim` | **Kiwix Mobile** | [F-Droid](https://f-droid.org/packages/org.kiwix.kiwixmobile/) / [Google Play](https://play.google.com/store/apps/details?id=org.kiwix.kiwixmobile) | `<vault>/wiki/`, `<vault>/admin/`, `<vault>/fun/` |
-| **Interactive Courses & STEM** | `kolibri` | **Kolibri Android App** | [F-Droid](https://f-droid.org/packages/org.learningequality.Kolibri/) / [Google Play](https://play.google.com/store/apps/details?id=org.learningequality.Kolibri) | `<vault>/tutorials/kolibri/` |
-| **Literature & Books** | `.epub` | **KOReader** / **Librera** | [F-Droid (KOReader)](https://f-droid.org/packages/org.koreader.launcher.fdroid/) | `<vault>/fun/`, `<vault>/tutorials/` |
-| **Offline Vector Maps** | `.map` | **OsmAnd** / **Cruiser** | [F-Droid (OsmAnd~)](https://f-droid.org/packages/net.osmand.plus/) | `<vault>/maps/` |
-| **Developer Docsets & HTML** | `.tgz` / `.html` | **Awh** / **Mobile Browser** | [F-Droid (Awh)](https://f-droid.org/packages/de.fe1k.awh/) or `offline-vault serve` | `<vault>/dev/`, `<vault>/admin/` |
-| **Offline Web Apps & Tools** | `.html` / `.zip` | **Chrome / Firefox / Browser** | Direct file URL or `offline-vault serve` | `<vault>/tools/<tool_id>/index.html` |
+| Tool | ID | Source | Opens at |
+| :--- | :--- | :--- | :--- |
+| **CyberChef** | `cyberchef_suite` | latest GitHub release ZIP | `tools/cyberchef_suite/` |
+| **IT-Tools** | `it_tools_suite` | latest GitHub release ZIP | its own port (`http://localhost:8001` when the portal runs on 8000) |
+| **draw.io** | `drawio_offline_suite` | latest GitHub release `draw.war` | `tools/drawio_offline_suite/index.html?offline=1` |
+| **CircuitJS1** | `circuitjs_simulator` | web build from Falstad's official offline bundle | `tools/circuitjs_simulator/circuitjs.html` |
+| **SQLime** | `sqlime_sqlite_studio` | repository = static site (SQLite WebAssembly bundled) | `tools/sqlime_sqlite_studio/` |
+| **GeoGebra** | `geogebra_math_apps` | official GeoGebra Math Apps bundle (free for non-commercial use) | `tools/geogebra_math_apps/` |
 
-### Setting Up Kiwix on Android:
-1. Install **Kiwix Mobile** from F-Droid or Play Store.
-2. Open Kiwix, tap **Menu ☰** → **Device Storage** / **Add ZIM file**.
-3. Select your vault folder (e.g. `/sdcard/Download/offline_vault/` or individual `.zim` files in `wiki/`, `admin/`, `fun/`).
-
-### Setting Up Kolibri on Android:
-1. Install **Kolibri Android App** from F-Droid or Play Store.
-2. Launch Kolibri and complete the offline device setup.
-3. To load courses:
-   - **Local Import**: Select **Device** → **Channels** → **Import** → select folder `/sdcard/Download/offline_vault/tutorials/kolibri/`.
-   - **Peer-to-Peer Sync**: If your PC is running `offline-vault serve --kolibri` on the same Wi-Fi network / hotspot, tap **Import from Local Network** to sync courses directly from PC to phone without internet!
+IT-Tools is a single-page app that only works at a site root, so `offline-vault serve` gives it a dedicated port. The CircuitJS1 Dropbox button and the OWASP site's web fonts need internet; everything else runs fully offline.
 
 ---
 
-## 💻 Linux Desktop Reader Apps Guide
+## 📱 Android Guide
 
-| Content Type | Recommended Desktop Tool | How to View / Open |
+Grant Termux storage access once (`termux-setup-storage`); the default vault is then `/sdcard/Download/offline_vault`, which Android apps can open.
+
+| Content | Format | How to use it on Android | Vault folder |
+| :--- | :--- | :--- | :--- |
+| Encyclopedias, wikis, DevDocs, Q&A, courses, comics | `.zim` | **Kiwix** app ([Play Store](https://play.google.com/store/apps/details?id=org.kiwix.kiwixmobile), [APK](https://download.kiwix.org/release/kiwix-android/)), or Termux `offline-vault serve --kiwix` plus the browser | all categories |
+| Books | `.epub` | **KOReader** ([F-Droid](https://f-droid.org/packages/org.koreader.launcher.fdroid/)) | `admin/`, `dev/` |
+| Vector maps | `.map` | **Locus Map** ([Play Store](https://play.google.com/store/apps/details?id=menion.android.locus)) or **OruxMaps** ([oruxmaps.com](https://www.oruxmaps.com/)): import as Mapsforge offline map | `maps/` |
+| Web apps and extracted sites | folder | Termux `offline-vault serve`, then open `http://localhost:8000` in the browser | `tools/`, `dev/owasp_cheat_sheet_series/` |
+| Kolibri channels | `KOLIBRI_DATA` | **Kolibri** app ([Play Store](https://play.google.com/store/apps/details?id=org.learningequality.Kolibri), [APK](https://github.com/learningequality/kolibri/releases/latest)): import channels from the folder or from a PC on the same Wi-Fi; or Termux `offline-vault serve --kolibri` | `tutorials/kolibri/` |
+
+**Kiwix:** the Play Store build opens ZIMs through the system file picker (Android storage rules); the APK from download.kiwix.org can scan the vault folder directly.
+
+**Kolibri:** syncing a Kolibri item needs the `kolibri` command (`pip install kolibri`, also inside Termux). Content is written in the layout Kolibri's "import from drive" expects, so the same folder can be imported by the Kolibri app or by another device. Kolibri's own database stays in `~/.local/share/offline-vault/kolibri-home` because SQLite is unreliable on Android shared storage.
+
+**Why no Kapeli docsets:** Dash/Zeal docsets only run on Android through Zeal inside a Termux:X11 desktop. The DevDocs ZIMs carry the same documentation, are 1 to 14 MB each and open in Kiwix.
+
+---
+
+## 💻 Linux Desktop Guide
+
+| Content | Tool | How to open |
 | :--- | :--- | :--- |
-| **Kiwix ZIM Files** | **Kiwix Desktop** or `kiwix-serve` | Run `offline-vault serve --kiwix` and open `http://localhost:8000` |
-| **Kolibri LMS Courses** | **Kolibri Local Server** | Run `offline-vault serve --kolibri` and open `http://localhost:8080` |
-| **Interactive Web Tools** | **Web Browser** / `offline-vault serve` | Open `<vault>/tools/<tool_id>/index.html` or `http://localhost:8000/tools/` |
-| **Developer Docsets** | **Zeal** / **Dash** | Add `<vault>/dev/` docsets to Zeal (`Tools > Docsets > Installed`) |
-| **EPUB Classics** | **Foliate** / **Calibre** | Open `.epub` files in `<vault>/fun/` |
-| **Vector Maps** | **Cruiser** / **QGIS** | Open `.map` vector files in `<vault>/maps/` |
+| ZIM files | **Kiwix Desktop** or `kiwix-serve` | `offline-vault serve --kiwix`, then `http://localhost:8000` |
+| Kolibri channels | **Kolibri** (`pip install kolibri`) | `offline-vault serve --kolibri`, then `http://localhost:8080` |
+| Web apps | Browser | `offline-vault serve --static`, then `http://localhost:8000` |
+| EPUB | **Foliate** / **Calibre** | open the `.epub` files |
+| Vector maps | **QGIS** (Mapsforge plugin) or any Mapsforge viewer | open `maps/*.map` |
 
 ---
 
-## 🚀 Quick Start (Zero-Setup 1-Click Launcher)
+## 🚀 Quick Start (Zero-Setup Launcher)
 
-Clone the repository and run `./run.sh` — it will **automatically create and configure the `.venv` and dependencies on first launch**:
+`./run.sh` creates the `.venv` and installs dependencies on first launch:
 
 ```bash
 git clone https://github.com/Adrixan/mobile-encyclopedia.git
@@ -106,81 +113,72 @@ cd mobile-encyclopedia
 pkg update -y && pkg upgrade -y
 termux-setup-storage
 
-# 2. Install Python & recommended tools
+# 2. Install Python & recommended tools (kiwix-tools and aria2 are Termux packages)
 pkg install -y python aria2 kiwix-tools
 
-# 3. Clone and launch
+# 3. Optional: Kolibri for Kolibri channels
+pip install kolibri
+
+# 4. Clone and launch
 git clone https://github.com/Adrixan/mobile-encyclopedia.git
 cd mobile-encyclopedia
 ./run.sh
 ```
 
+Install Termux from [F-Droid](https://f-droid.org/packages/com.termux/). For multi-GB downloads keep the screen on or run `termux-wake-lock` first.
+
 ---
 
 ## 🖥️ Usage
 
-### Launch Interactive TUI (Recommended)
+### Interactive TUI (recommended)
 ```bash
-offline-vault
-# or
-offline-vault tui
+offline-vault        # or: offline-vault tui
 ```
 
-#### TUI Keyboard Shortcuts:
 | Key | Action |
 | :--- | :--- |
-| `Space` | Toggle selected resource on/off |
-| `S` | Start downloading / synchronizing selected resources |
-| `P` | Change Vault Storage Path (Presets: `~/offline_vault`, `/sdcard/Download/offline_vault`) |
-| `H` / `?` | Open built-in Help & Reader Guide |
-| `A` | Select all currently visible resources |
+| `Space` | Toggle the highlighted resource |
+| `S` | Download missing or outdated selected resources |
+| `P` | Change vault path (presets: `~/offline_vault`, `/sdcard/Download/offline_vault`) |
+| `H` / `?` | Help and reader guide (`Esc` closes) |
+| `A` | Select all visible resources |
 | `C` | Clear all selections |
-| `F` / `/` | Focus search / filter bar |
-| `Q` | Quit application |
+| `F` / `/` | Focus the search bar |
+| `Q` | Quit |
 
----
-
-### Non-Interactive CLI Automation
+### Non-interactive CLI
 
 ```bash
-# List all available resources
-offline-vault list
+offline-vault list                              # whole catalog
+offline-vault list --category tools             # filters: --category, --language, --format, --query
+offline-vault status                            # vault path, free space, installed items
+offline-vault status --vault-dir /sdcard/Download/offline_vault
 
-# List with category, language, or format filter
-offline-vault list --category tools
-offline-vault list --category tutorials
-offline-vault list --language bs
+offline-vault sync --category tools             # download missing or outdated items
+offline-vault sync --category wiki --language bs  # filters combine
+offline-vault sync --id cyberchef_suite --id devdocs_python
+offline-vault sync --force --id cyberchef_suite # re-download even if current
 
-# Check vault status and downloaded items
-offline-vault status
-
-# Sync specific resources or entire categories
-offline-vault sync --category tools
-offline-vault sync --id cyberchef_suite --id it_tools_suite --id circuitjs_simulator
-
-# Force update and prune old versions
-offline-vault sync --force --id cyberchef_suite
-
-# Launch local servers across LAN/Wi-Fi
-offline-vault serve --static    # Multi-threaded portal & web apps server at http://localhost:8000
-offline-vault serve --kolibri   # Starts Kolibri LMS at http://localhost:8080
-offline-vault serve --kiwix     # Starts Kiwix ZIM server at http://localhost:8000
-offline-vault serve --host 0.0.0.0 --port 8080   # Custom host and port for intranet hotspot sharing
+offline-vault serve --static                    # portal + web apps on port 8000 (IT-Tools on 8001)
+offline-vault serve --kiwix                     # kiwix-serve on port 8000
+offline-vault serve --kolibri                   # Kolibri on port 8080
+offline-vault serve --host 127.0.0.1 --port 9000  # bind locally only, custom port
 ```
+
+`sync` exits non-zero if any item fails; each failure is listed with its reason. One failing item never stops the rest.
 
 ---
 
 ## ⚙️ Configuration
 
-Configuration is stored in `~/.config/offline-vault/config.yaml`:
+`~/.config/offline-vault/config.yaml` (mode 0600):
 
 ```yaml
 vault_dir: /home/user/offline_vault   # or /sdcard/Download/offline_vault on Termux
-locale: en
-max_concurrent_downloads: 2
 prefer_aria2: true
 aria2_split_connections: 4
-enable_kiwix_indexing: true
+enable_kiwix_indexing: true           # rebuild library.xml with kiwix-manage after ZIM changes
 ```
 
 ---

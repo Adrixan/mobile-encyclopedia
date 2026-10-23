@@ -9,6 +9,9 @@ from offline_vault.config import VaultConfig
 from offline_vault.downloader import DownloadResult
 from offline_vault.sync import SyncManager
 
+ZIM_V1 = b"ZIM\x04 working v1 content"
+ZIM_V2 = b"ZIM\x04 new updated content v2"
+
 
 def test_sync_destination_is_canonical_versionless(tmp_path):
     config = VaultConfig(vault_dir=str(tmp_path / "vault"))
@@ -30,7 +33,7 @@ def test_sync_destination_is_canonical_versionless(tmp_path):
     assert dest.name == "xkcd_complete_comics.zim"
 
 
-def test_sync_prunes_old_version_only_after_success(tmp_path):
+def test_sync_replaces_canonical_file_and_keeps_unowned_files(tmp_path):
     vault_dir = tmp_path / "vault"
     config = VaultConfig(vault_dir=str(vault_dir))
     item = ResourceItem(
@@ -50,16 +53,16 @@ def test_sync_prunes_old_version_only_after_success(tmp_path):
 
     # Place an old dated version and old canonical version
     old_dated = fun_dir / "explainxkcd_en_all_maxi_2024-01.zim"
-    old_dated.write_text("old dated content")
+    old_dated.write_bytes(ZIM_V1)
     old_canonical = fun_dir / "xkcd_complete_comics.zim"
-    old_canonical.write_text("old canonical v1")
+    old_canonical.write_bytes(ZIM_V1)
 
     # Mock download success
     def mock_download(url, destination, **kwargs):
         dest_path = Path(destination)
         dest_path.parent.mkdir(parents=True, exist_ok=True)
-        dest_path.write_text("new updated content v2")
-        return DownloadResult(url=url, destination=dest_path, success=True, bytes_downloaded=22)
+        dest_path.write_bytes(ZIM_V2)
+        return DownloadResult(url=url, destination=dest_path, success=True, bytes_downloaded=len(ZIM_V2))
 
     mgr.engine.download = mock_download
 
@@ -67,11 +70,10 @@ def test_sync_prunes_old_version_only_after_success(tmp_path):
     assert summary.completed == 1
 
     # Canonical file now has new content
-    assert old_canonical.exists()
-    assert old_canonical.read_text() == "new updated content v2"
+    assert old_canonical.read_bytes() == ZIM_V2
 
-    # Old dated version was safely pruned
-    assert not old_dated.exists()
+    # Files the vault did not create (manual copies, other items) are never deleted
+    assert old_dated.exists()
 
 
 def test_sync_preserves_old_version_if_download_fails(tmp_path):
@@ -94,7 +96,7 @@ def test_sync_preserves_old_version_if_download_fails(tmp_path):
 
     # Place working v1 file
     old_canonical = fun_dir / "xkcd_complete_comics.zim"
-    old_canonical.write_text("working v1 content")
+    old_canonical.write_bytes(ZIM_V1)
 
     # Mock download failure
     def mock_failed_download(url, destination, **kwargs):
@@ -107,7 +109,7 @@ def test_sync_preserves_old_version_if_download_fails(tmp_path):
 
     # Old working version must be preserved!
     assert old_canonical.exists()
-    assert old_canonical.read_text() == "working v1 content"
+    assert old_canonical.read_bytes() == ZIM_V1
 
 
 def test_sync_unpacks_zip_archive_with_index_entrypoint(tmp_path):

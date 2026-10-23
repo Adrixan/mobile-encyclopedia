@@ -3,12 +3,8 @@
 from __future__ import annotations
 
 import argparse
-import http.server
-import os
-import shutil
-import socketserver
-import subprocess
 import sys
+from dataclasses import replace
 from pathlib import Path
 from typing import List, Optional
 
@@ -16,9 +12,8 @@ from rich.console import Console
 from rich.table import Table
 
 from offline_vault.catalog import ResourceCatalog, load_catalog
-from offline_vault.config import VaultConfig, get_disk_space, load_config, save_config, validate_and_resolve_vault_path
+from offline_vault.config import VaultConfig, get_disk_space, load_config, validate_and_resolve_vault_path
 from offline_vault.sync import SyncManager
-from offline_vault.tui import OfflineVaultApp
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -36,7 +31,7 @@ def build_parser() -> argparse.ArgumentParser:
     list_p = subparsers.add_parser("list", help="List available resources in catalog")
     list_p.add_argument("--category", "-c", help="Filter by category (admin, dev, wiki, survival, maps, etc.)")
     list_p.add_argument("--language", "-l", help="Filter by language code (en, es, bs, hr, sr, sl, fr, ar)")
-    list_p.add_argument("--format", "-f", help="Filter by format (zim, docset, map, epub, html)")
+    list_p.add_argument("--format", "-f", help="Filter by format (zim, epub, map, zip, tar, kolibri)")
     list_p.add_argument("--query", "-q", help="Search query")
 
     # Status
@@ -46,8 +41,8 @@ def build_parser() -> argparse.ArgumentParser:
     # Sync
     sync_p = subparsers.add_parser("sync", help="Synchronize / download selected resources non-interactively")
     sync_p.add_argument("--all", action="store_true", help="Sync all catalog resources")
-    sync_p.add_argument("--category", "-c", help="Sync all items in category")
-    sync_p.add_argument("--language", "-l", help="Filter and sync all items in language")
+    sync_p.add_argument("--category", "-c", help="Sync all items in category (combinable with --language)")
+    sync_p.add_argument("--language", "-l", help="Sync all items in language (combinable with --category)")
     sync_p.add_argument("--id", "-i", action="append", help="Specific resource ID(s) to sync")
     sync_p.add_argument("--force", "--update", "-u", action="store_true", help="Force update/re-download and prune old versions")
     sync_p.add_argument("--vault-dir", help="Override vault directory")
@@ -101,20 +96,22 @@ def handle_list(args: argparse.Namespace, catalog: ResourceCatalog, console: Con
 
 def handle_status(args: argparse.Namespace, config: VaultConfig, catalog: ResourceCatalog, console: Console) -> int:
     """Handle 'status' subcommand."""
-    vault_dir = Path(args.vault_dir if args.vault_dir else config.vault_dir).resolve()
+    vault_dir = Path(args.vault_dir if args.vault_dir else config.vault_dir).expanduser().resolve()
     total, used, free = get_disk_space(vault_dir)
 
     console.print(f"[bold cyan]Vault Directory:[/bold cyan] {vault_dir}")
     console.print(f"[bold green]Available Disk Space:[/bold green] {free / (1024**3):.2f} GB / {total / (1024**3):.2f} GB")
 
-    sync_mgr = SyncManager(config, catalog)
+    # Read-only inspection: never create vault folders from `status`
+    sync_mgr = SyncManager(replace(config, vault_dir=str(vault_dir)), catalog, create_dirs=False)
     downloaded = []
     missing = []
 
     for item in catalog.items:
-        dest = sync_mgr.get_destination_for_item(item)
-        if dest.exists() and dest.stat().st_size > 0:
-            downloaded.append((item, dest.stat().st_size))
+        if sync_mgr.artifact_exists(item):
+            dest = sync_mgr.get_destination_for_item(item)
+            size = sum(f.stat().st_size for f in dest.rglob("*") if f.is_file()) if dest.is_dir() else dest.stat().st_size
+            downloaded.append((item, size))
         else:
             missing.append(item)
 
@@ -133,12 +130,13 @@ def handle_sync(args: argparse.Namespace, config: VaultConfig, catalog: Resource
         target_ids = {i.id for i in catalog.items}
     elif args.id:
         target_ids = set(args.id)
-    elif args.category:
-        target_ids = {i.id for i in catalog.filter(category=args.category)}
-    elif args.language:
-        target_ids = {i.id for i in catalog.filter(language=args.language)}
+    elif args.category or args.language:
+        target_ids = {i.id for i in catalog.filter(category=args.category, language=args.language)}
     else:
         console.print("[bold red]Error: Specify --all, --category, --language, or --id to sync.[/bold red]")
+        return 1
+    if not target_ids:
+        console.print("[bold yellow]No catalog items match the given filters.[/bold yellow]")
         return 1
 
     console.print(f"[bold cyan]Initiating sync for {len(target_ids)} resources into:[/bold cyan] {config.vault_dir}")
@@ -184,7 +182,10 @@ def handle_serve(args: argparse.Namespace, config: VaultConfig, console: Console
         return run_static_server(vault_dir=vault_dir, host=host, port=port, console=console)
 
     # 4. Auto-detect: if Kolibri or Kiwix is available and populated, else static server
-    if find_kolibri_executable() and (vault_dir / "tutorials" / "kolibri").is_dir():
+    from offline_vault.kolibri import kolibri_content_dir
+
+    kolibri_dbs = kolibri_content_dir(vault_dir) / "databases"
+    if find_kolibri_executable() and kolibri_dbs.is_dir() and any(kolibri_dbs.glob("*.sqlite3")):
         port = args.port or 8080
         return run_kolibri_server(vault_dir=vault_dir, host=host, port=port, console=console)
     elif find_kiwix_serve_executable() and list(vault_dir.glob("**/*.zim")):
@@ -205,6 +206,8 @@ def run_cli(argv: Optional[List[str]] = None) -> int:
     catalog = load_catalog()
 
     if args.command is None or args.command == "tui":
+        from offline_vault.tui import OfflineVaultApp
+
         app = OfflineVaultApp(config=config)
         app.run()
         return 0

@@ -64,3 +64,24 @@
     1. Dedicated `tools/` category and directory.
     2. Safe archive unpacking (ZipSlip and path traversal protection).
     3. Recursive `index.html` entrypoint discovery and linking.
+
+### Epic 8: Android-First Catalog v2 & Safe Sync (2026-10-23)
+Decisions (Peter, 2026-10-23): Kolibri items switch to ZIMs where a ZIM exists; docsets stay Kapeli only if usable on Termux/Android, otherwise ZIMs; tools use prebuilt releases only. Every item must be usable on Android, either in Termux or through an Android app reading the vault folder.
+- **US8.1: Safe Sync Engine** (Must Have, 5 pts) — **DONE**
+  1. Pruning touches only exact, id-owned paths; other catalog items are never deleted.
+  2. Archives extract into a staging dir with path, link and size checks (no symlinks, no `..`, no absolute paths), then swap atomically.
+  3. Downloads are validated by file signature per format and by SHA-256 where upstream publishes one (Kiwix `.sha256`, GitHub asset digests); HTML error pages are rejected.
+  4. A manifest (`<vault>/.offline-vault/manifest.json`) records url, sha256 and size; items are skipped when current and updated when upstream changed.
+  5. One failing item never aborts the batch; aria2 partials are discarded before the Python fallback.
+- **US8.2: Catalog v2 with Typed Sources** (Must Have, 5 pts) — **DONE**
+  1. Sources `kiwix` (book name + flavour, latest by date), `github` (latest release asset by pattern), `url`, `kolibri` (Studio channel id).
+  2. Docsets replaced by DevDocs ZIMs (Kapeli runs on Android only via Zeal under Termux:X11).
+  3. Tools are prebuilt web apps with explicit entrypoints; items without a prebuilt are removed.
+  4. No placeholder or duplicate URLs; sizes match upstream.
+  5. Web apps that need a site root (`serve_root: true`, IT-Tools) get a dedicated port with SPA fallback.
+- **US8.3: Kolibri Channel Import** (Should Have, 3 pts) — **DONE**
+  1. `kolibri manage importchannel/importcontent network <id>` with `KOLIBRI_CONTENT_DIR=<vault>/tutorials/kolibri/KOLIBRI_DATA/content`, so the vault folder doubles as a Kolibri "local drive" export.
+  2. `KOLIBRI_HOME` stays in local app storage (SQLite is unreliable on Android shared storage).
+- **US8.4: Android Access Paths** (Must Have, 3 pts) — **DONE**
+  1. README and in-app help document per format: Android app reading the vault folder, or Termux server plus browser.
+  2. Portal links tools by entrypoint and Kolibri/Kiwix by the current host instead of `localhost`.

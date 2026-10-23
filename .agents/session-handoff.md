@@ -1,25 +1,25 @@
-# Session Handoff (2026-10-23)
+# Session Handoff (2026-10-23, Sprint 6)
 
 ## Trajectory
-- Full review of the project for bugs, security issues and deviations from `.agents/plan.md`. No source code changed.
-- Test suite: 43/43 green, but the tests mock exactly the behaviour that breaks in practice (pruning, extraction, downloads).
-- Repro scripts (local only, git-excluded) in `.scratch/`: `check_urls.py`, `check_resolve.py`, `repro_prune.py`, `repro_misc.py`, `repro_tui.py`.
+- Morning: full review (findings below were the input). Then Peter decided: Kolibri to ZIMs where available, Kapeli only if it works on Termux/Android (it does not, except Zeal under Termux:X11), tools prebuilt only, everything usable on Android.
+- Delivered Epic 8 on branch `feat/android-catalog-v2` (US8.1 to US8.4, see `.agents/plan.md`).
 
-## Verified findings (ranked)
-- CRITICAL `sync.py` `prune_old_versions`: keyword match on tags and id tokens deletes other catalog items in the same category. Syncing all 12 wiki items leaves 1 file on disk; syncing `python_docset` deletes all 10 other docsets. TUI always passes `force_update=True`, so every TUI sync re-downloads and prunes.
-- CRITICAL catalog: 76 entries share 51 URLs; about 40 entries download something other than their name (placeholder URLs: OWASP/tcpdump/progit/appropedia/explainxkcd reused; all 12 Kolibri entries point to the Studio web page; WHO epub, Kapeli `Python_3`/`PowerShell` return HTML; Debian handbook 404). Sizes off by up to 4x (en nopic 12000 vs 50250 MB).
-- CRITICAL security `sync.py` tar extraction: no `filter="data"`; symlink member escapes the vault (reproduced on Python 3.13).
-- HIGH: no content-type/size/checksum validation (US3.1 AC4 unmet); HTML error pages stored as success. aria2 to Python fallback resumes a sparse multi-segment partial (corruption, reasoned). Kolibri sync non-functional. Docsets and tarball "epub" never extracted. 5 of 9 tools are source repos or libraries; nested `index.html` symlink breaks relative assets. Static server binds 0.0.0.0 with directory listing; `--host` ignored for Kiwix/Kolibri.
-- MEDIUM: TUI cursor jumps to row 0 on every toggle; `/` and Esc bindings missing; widget mutated from worker thread; extraction exception aborts whole sync. `status --vault-dir` ignored. `sync --category` + `--language` not combined. Stale `library.xml` entries. Dashboard links to `localhost` (broken from phones) and port 8000 clash. i18n unused. README F-Droid links for Kiwix, Kolibri, Awh 404; OsmAnd cannot read Mapsforge `.map`.
-- DEPS: urllib3 2.7.0 (3 advisories, fixed 2.8.0), certifi 2026.7.22 (fixed 2026.10.19); no lockfile.
+## What changed
+- `catalog.py`: typed sources (`kiwix`, `github`, `kolibri`, `url`), `entrypoint`, `extract_subdir`, `serve_root`; formats `docset`/`html` removed.
+- `resolver.py` (new): Kiwix library by book name + flavour (24 h disk cache, stale cache offline), `.sha256` sidecars, GitHub latest release asset + digest, HTTPS-only results.
+- `downloader.py`: no URL guessing; file signature checks; truncation detection; HTTP 416 restart; aria2 runs in a private work dir (Kiwix metalinks rename the output, which previously left full duplicate files in `.tmp/` and forced a second download); partial discarded before the Python fallback.
+- `sync.py` (rewritten): manifest `<vault>/.offline-vault/manifest.json`, skip when current, update when upstream URL changed, SHA-256 check, safe extraction (regular files only, no traversal/links, size guard), staging + swap with rollback, redirect `index.html` to entrypoint, per-item error isolation. Fuzzy pruning removed.
+- `kolibri.py` (new): `KOLIBRI_CONTENT_DIR=<vault>/tutorials/kolibri/KOLIBRI_DATA/content`, `KOLIBRI_HOME` in `~/.local/share/offline-vault/kolibri-home`.
+- `server.py`: library.xml rebuilt from scratch, manifest-based portal links, host-relative server links, HTML escaping, `serve_root` apps on port+1.. with SPA fallback.
+- `cli.py`: `status --vault-dir` honoured without creating dirs, combined `--category`/`--language`, lazy TUI import. `tui.py`: cursor kept on toggle, `/` and Esc bindings, no forced re-download, thread-safe finish, error list.
+- Catalog: 69 items generated from live data with `.scratch/gen_catalog.py` + `.scratch/catalog_spec.yaml` (local only, git-excluded).
 
-## Open decisions (need Peter)
-- Fix order and scope: hotfix (prune, tar filter, validation, TUI force flag) first, then catalog rebuild.
-- Kolibri: implement `importchannel`/`importcontent` with channel IDs, or replace with Kiwix ZIMs (phet, khanacademy, ted, devdocs).
-- Docsets: keep Kapeli (desktop Zeal) or switch to `devdocs_en_*` ZIMs (readable in Kiwix on Android).
-- Tools: replace source tarballs with built releases or drop them.
+## Verification
+- 91 tests green; `pip-audit` clean after upgrading urllib3 2.8.0 / certifi 2026.10.19 in the venv.
+- Live sync of 11 items incl. aria2 + Kiwix metalink; manifest shows SHA-256 for Kiwix and GitHub items; second run skips all.
+- Browser (Playwright) via `offline-vault serve`: CyberChef, IT-Tools (port 8766 in test), draw.io, CircuitJS1, SQLime (query executed), GeoGebra (command evaluated), OWASP site. Only cosmetic external requests remain (favicons, fonts, Dropbox button).
+- Kolibri 0.19.5: `importchannel` + `importcontent --node_ids` wrote the export layout into the vault, no device provisioning needed.
 
-## Next steps
-- Add regression tests per finding before fixing (TDD loop), then a manifest (`<vault>/manifest.json`) for update checks and exact pruning.
-- Generate Kiwix entries from `library_zim.xml` (name + flavour) with sizes; add a catalog lint test (unique URLs, network check marked).
-- `uv lock` with exact pins; add `pip-audit` gate; add project `AGENTS.md` + `CLAUDE.md` (`@AGENTS.md`).
+## Open decisions / next steps
+- Not tested on a real Android device: Kiwix Play build file picker, Kolibri app folder import under scoped storage, Termux `pip install kolibri`.
+- Backlog in `.agents/to-do.md`: server default bind 0.0.0.0 and directory listing, lockfile + audit gate, unused i18n, portal branding, project AGENTS.md, catalog generator into `scripts/`.
