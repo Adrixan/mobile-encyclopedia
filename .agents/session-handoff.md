@@ -17,6 +17,11 @@
 - `ss -ltn`: 127.0.0.1 for portal (8765) and root apps (8766, 8767); real Kolibri 0.19.5 on 127.0.0.1:8090; LAN IP refused; `--host 0.0.0.0` rejected.
 - kiwix-serve not installed locally; `--address` verified in kiwix-tools source.
 
+## Exit check (end of session)
+- Peter asked whether web tools are bundled: they are not. The wheel is 58 KB (Python modules, `catalog.yaml`, locales); every tool, ZIM, EPUB, map and APK is fetched from upstream at sync time and patched on the device. Patches are text rules in `catalog.yaml`.
+- Generator usage is documented in `.scratch/README.md` (local only, git-excluded): refresh `library_zim.xml` and `kolibri_channels.json`, then run `gen_catalog.py` with `GH_TOKEN`.
+- State at exit: `main` = `origin/main`, tree clean, no feature branches, 110 tests green. `origin/chore/drop-copilot-kilo` is an older, already merged branch left in place.
+
 ## Open decisions / next steps
 - Not tested on a device: APK installs from the vault, Kiwix APK scanning the vault folder.
 - Backlog: directory listing, lockfile + audit gate, unused i18n, portal branding, project AGENTS.md, generator into `scripts/` (generator and spec live only in `.scratch/`).
