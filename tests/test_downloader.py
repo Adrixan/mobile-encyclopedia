@@ -1,6 +1,7 @@
 """Unit and security acceptance tests for US3.1: Resumable Multi-backend Downloader."""
 
 import hashlib
+import io
 import os
 import threading
 from http.server import HTTPServer, SimpleHTTPRequestHandler
@@ -145,10 +146,92 @@ def test_us3_1_atomic_download_on_failure(tmp_path):
     assert not dest.exists()
 
 
-def test_us3_1_resolve_latest_kiwix_version():
-    from offline_vault.downloader import extract_kiwix_date_stamp, resolve_upstream_url
+def test_check_file_signature_per_format(tmp_path):
+    from offline_vault.downloader import check_file_signature
 
-    assert extract_kiwix_date_stamp("explainxkcd_en_all_maxi_2026-07.zim") == (2026, 7)
-    assert extract_kiwix_date_stamp("wikipedia_en_top_maxi_2024-05.zim") == (2024, 5)
-    assert extract_kiwix_date_stamp("no_date.zim") == (0, 0)
+    cases = {
+        "zim": b"ZIM\x04rest",
+        "zip": b"PK\x03\x04rest",
+        "epub": b"PK\x03\x04rest",
+        "map": b"mapsforge binary OSMrest",
+    }
+    for fmt, data in cases.items():
+        good = tmp_path / f"good.{fmt}"
+        good.write_bytes(data)
+        assert check_file_signature(good, fmt) is None
+        bad = tmp_path / f"bad.{fmt}"
+        bad.write_bytes(b"<!DOCTYPE html><html></html>")
+        assert check_file_signature(bad, fmt) is not None
 
+
+def test_python_download_fails_on_truncated_body(tmp_path):
+    import socket
+
+    srv = socket.socket()
+    srv.bind(("127.0.0.1", 0))
+    srv.listen(1)
+    port = srv.getsockname()[1]
+
+    def serve_truncated():
+        conn, _ = srv.accept()
+        conn.recv(4096)
+        conn.sendall(b"HTTP/1.1 200 OK\r\nContent-Length: 1000\r\nConnection: close\r\n\r\n" + b"x" * 100)
+        conn.close()
+        srv.close()
+
+    threading.Thread(target=serve_truncated, daemon=True).start()
+    dest = tmp_path / "truncated.bin"
+    res = DownloaderEngine(prefer_aria2=False).download(f"http://127.0.0.1:{port}/f", dest)
+    assert res.success is False
+    assert not dest.exists()
+
+
+def test_aria2_failure_discards_partial_before_python_fallback(tmp_path, http_server, monkeypatch):
+    url, data = http_server
+    dest = tmp_path / "fallback.bin"
+    tmp_file = tmp_path / "fallback.bin.tmp"
+    control = tmp_path / "fallback.bin.tmp.aria2"
+
+    engine = DownloaderEngine(prefer_aria2=False)
+    engine.prefer_aria2 = True
+
+    def failing_aria2(url, dest_path, tmp_path_arg, progress_callback):
+        # aria2 leaves a sparse multi-segment partial behind
+        tmp_path_arg.write_bytes(b"\x00" * 4096)
+        control.write_bytes(b"ctrl")
+        return DownloadResult(url=url, destination=dest_path, success=False, error_message="aria2c exited with code 1")
+
+    monkeypatch.setattr(engine, "_download_aria2", failing_aria2)
+    res = engine._download_with_fallback(url, dest, tmp_file, None)
+    assert res.success
+    assert dest.read_bytes() == data
+    assert not control.exists()
+
+
+
+def test_aria2_metalink_renamed_output_is_picked_up(tmp_path, monkeypatch):
+    """Kiwix answers aria2 with a metalink; aria2 then names the file after the upstream ZIM."""
+    import subprocess as sp
+
+    dest = tmp_path / "devdocs_nginx.zim"
+
+    class FakeProc:
+        def __init__(self, cmd, **kwargs):
+            workdir = Path(next(a.split("=", 1)[1] for a in cmd if a.startswith("--dir=")))
+            workdir.mkdir(parents=True, exist_ok=True)
+            (workdir / "devdocs_en_nginx_2026-10.zim").write_bytes(b"ZIM\x04payload")
+            self.stdout = io.StringIO("")
+            self.returncode = 0
+
+        def poll(self):
+            return 0
+
+        def wait(self):
+            return 0
+
+    monkeypatch.setattr(sp, "Popen", FakeProc)
+    engine = DownloaderEngine(prefer_aria2=False)
+    res = engine._download_aria2("https://lb.download.kiwix.org/x.zim", dest, dest.with_name(dest.name + ".tmp"), None)
+    assert res.success, res.error_message
+    assert dest.read_bytes() == b"ZIM\x04payload"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["devdocs_nginx.zim"]

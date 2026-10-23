@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
+from rich.markup import escape
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -153,7 +154,6 @@ class PathDialog(ModalScreen[Optional[str]]):
             with Horizontal(id="preset_bar"):
                 yield Button("~/offline_vault", variant="default", id="preset_home")
                 yield Button("/sdcard/Download/offline_vault", variant="default", id="preset_sdcard")
-                yield Button("/tmp/offline_vault", variant="default", id="preset_tmp")
             yield Input(value=self.current_path, id="path_input")
             with Horizontal(id="btn_bar"):
                 yield Button("Save & Apply", variant="primary", id="btn_save")
@@ -166,10 +166,6 @@ class PathDialog(ModalScreen[Optional[str]]):
     @on(Button.Pressed, "#preset_sdcard")
     def on_preset_sdcard(self) -> None:
         self.query_one("#path_input", Input).value = "/sdcard/Download/offline_vault"
-
-    @on(Button.Pressed, "#preset_tmp")
-    def on_preset_tmp(self) -> None:
-        self.query_one("#path_input", Input).value = "/tmp/offline_vault"
 
     @on(Button.Pressed, "#btn_save")
     def on_save(self) -> None:
@@ -204,56 +200,57 @@ class HelpScreen(ModalScreen[None]):
     HELP_MARKDOWN = """
 # 📚 Offline Knowledge Vault Guide
 
-### ⌨️ TUI Keyboard Controls & Shortcuts
+### ⌨️ Keyboard Controls
 - **Space**: Toggle selection of highlighted item
-- **S**: Start synchronization of selected items
-- **P**: Set / Change Vault Path (Presets: `~/offline_vault`, `/sdcard/Download/offline_vault`)
+- **S**: Download missing or outdated selected items
+- **P**: Set / change vault path (presets: `~/offline_vault`, `/sdcard/Download/offline_vault`)
 - **A**: Select all visible resources
 - **C**: Clear all selections
-- **F** / **/**: Focus search & filter bar
-- **H** / **?**: Open this Help & Reader Guide
+- **F** / **/**: Focus search & filter bar (`lang:bs`, `cat:wiki`, `tag:security`)
+- **H** / **?**: Open this guide, **Esc** closes it
 - **Q**: Quit
 
 ---
 
-### 📂 File Formats & Destination Folders
-Resources are stored without volatile version strings directly in category folders:
-- **`admin/`**, **`wiki/`**, **`survival/`**, **`fun/`** (`.zim`): Offline compressed wikis and encyclopedias.
-- **`tutorials/kolibri/`** (`kolibri`): Interactive courses, PhET simulations, quizzes, and mastery tracking.
-- **`dev/`** (`.tgz` / `docset`): Kapeli Dash/Zeal API docsets (Python, Rust, C++, Go, PHP, JS, PostgreSQL).
-- **`fun/`**, **`tutorials/`** (`.epub`): Standard Ebooks, Pro Git, javascript.info.
-- **`maps/`** (`.map`): Mapsforge vector maps for OsmAnd & Cruiser.
-- **`tools/`** (`.zip` / `.tar`): Standalone offline web apps (CyberChef, IT-Tools, CircuitJS1, Draw.io, SQLime, Ptable, MathGrapher, SunCalc, Excalidraw).
+### 📂 Formats & Folders
+Files keep versionless names, so bookmarks survive updates:
+- **`.zim`** (all categories): wikis, DevDocs references, Q&A, courses, comics. Open in Kiwix.
+- **`.epub`** (`admin/`, `dev/`): books. Open in KOReader.
+- **`.map`** (`maps/`): Mapsforge vector maps. Open in Locus Map or OruxMaps.
+- **`tools/<id>/`**: prebuilt web apps (CyberChef, IT-Tools, draw.io, CircuitJS1, SQLime, GeoGebra).
+- **`tutorials/kolibri/`**: Kolibri channels (Sikana, CK-12, StoryWeaver). Needs `pip install kolibri`.
 
 ---
 
-### 📱 Android Reader & Offline App Setup
+### 📱 Android
+| Content | App | Vault folder |
+| :--- | :--- | :--- |
+| **`.zim`** | **Kiwix** (Play Store or APK from download.kiwix.org) | any category |
+| **`.epub`** | **KOReader** (F-Droid) | `admin/`, `dev/` |
+| **`.map`** | **Locus Map** / **OruxMaps** | `maps/` |
+| **Web apps** | Browser via `offline-vault serve` in Termux | `tools/` |
+| **Kolibri** | **Kolibri** app: import from folder or from a PC on Wi-Fi | `tutorials/kolibri/` |
 
-| Format / Type | Recommended App | Download Link | Vault Path |
-| :--- | :--- | :--- | :--- |
-| **`.zim` Encyclopedias** | **Kiwix Mobile** | F-Droid / Play Store | `<vault>/wiki/`, `<vault>/admin/`, `<vault>/fun/` |
-| **`kolibri` LMS** | **Kolibri Android App** | F-Droid / Play Store | `<vault>/tutorials/kolibri/` |
-| **`.epub` Books** | **KOReader** / **Librera** | F-Droid | `<vault>/fun/`, `<vault>/tutorials/` |
-| **`.map` Vector Maps** | **OsmAnd** / **Cruiser** | F-Droid / Play Store | `<vault>/maps/` |
-| **`docset` APIs** | **Awh** / **Mobile Browser** | F-Droid | `<vault>/dev/` |
-| **`tools` Web Apps** | **Chrome / Firefox / Browser** | Direct / Local Server | `<vault>/tools/<tool_id>/index.html` |
+**Kiwix:** the Play Store build opens ZIMs through the file picker; the APK build can scan the vault folder.
 
-**How to Open Kiwix on Android**:
-1. Install **Kiwix Mobile** from F-Droid or Play Store.
-2. Open Kiwix → Menu ☰ → **Device Storage** → select `/sdcard/Download/offline_vault/`.
-
-**How to Open Kolibri on Android**:
-1. Install **Kolibri Android App** from F-Droid or Play Store.
-2. Go to **Device** → **Channels** → **Import** → select `/sdcard/Download/offline_vault/tutorials/kolibri/`.
-3. Or tap **Import from Local Network** to sync peer-to-peer from your PC over Wi-Fi!
+**Web apps:** run `offline-vault serve` in Termux and open `http://localhost:8000` in the browser.
+IT-Tools gets its own port (`http://localhost:8001`).
 
 ---
 
-### 💻 Local Desktop Serving
-- `offline-vault serve --kolibri`: Launch Kolibri LMS at `http://localhost:8080`
-- `offline-vault serve --kiwix`: Launch Kiwix server at `http://localhost:8000`
-- `offline-vault serve --static`: Launch static HTTP doc server at `http://localhost:8000`
+### 💻 Local Serving
+- `offline-vault serve --static`: portal and web apps at `http://localhost:8000`
+- `offline-vault serve --kiwix`: Kiwix server at `http://localhost:8000`
+- `offline-vault serve --kolibri`: Kolibri at `http://localhost:8080`
 """
+
+    BINDINGS = [
+        Binding("escape", "close", "Close"),
+        Binding("q", "close", "Close", show=False),
+    ]
+
+    def action_close(self) -> None:
+        self.dismiss(None)
 
     def compose(self) -> ComposeResult:
         with Vertical(id="help_box"):
@@ -302,6 +299,7 @@ class SyncScreen(ModalScreen[None]):
             yield ProgressBar(total=100, id="item_progress")
             with Horizontal():
                 yield Button("Close / Done", variant="success", id="btn_done", disabled=True)
+        yield Static("", id="sync_errors")
 
     def on_mount(self) -> None:
         self.run_sync_worker()
@@ -329,19 +327,28 @@ class SyncScreen(ModalScreen[None]):
             self.app.call_from_thread(overall_bar.update, progress=completed_count)
 
         summary = self.sync_manager.sync_items(
-            self.selected_ids,
-            force_update=True,
+            set(self.selected_ids),
+            force_update=False,
             progress_callback=on_item_progress,
             item_completed_callback=on_item_complete,
         )
 
+        status_style = "bold green" if summary.failed == 0 else "bold yellow"
         status_msg = (
-            f"[bold green]Sync Finished![/bold green] "
-            f"Completed: {summary.completed}, Skipped (Already Present): {summary.skipped}, Failed: {summary.failed}"
+            f"[{status_style}]Sync Finished![/{status_style}] "
+            f"Downloaded: {summary.completed}, Up to date: {summary.skipped}, Failed: {summary.failed}"
         )
-        self.app.call_from_thread(status_lbl.update, status_msg)
-        self.app.call_from_thread(done_btn.set_class, False, "disabled")
-        done_btn.disabled = False
+        error_lines = "\n".join(
+            f"[red]{escape(item_id)}[/red]: {escape(message)}" for item_id, message in summary.errors.items()
+        )
+
+        def finish() -> None:
+            status_lbl.update(status_msg)
+            self.query_one("#sync_errors", Static).update(error_lines)
+            done_btn.disabled = False
+            done_btn.focus()
+
+        self.app.call_from_thread(finish)
 
     @on(Button.Pressed, "#btn_done")
     def on_done(self) -> None:
@@ -411,6 +418,7 @@ class OfflineVaultApp(App):
         Binding("a", "select_all", "Select All"),
         Binding("c", "clear_all", "Clear"),
         Binding("f", "focus_search", "Search"),
+        Binding("slash", "focus_search", "Search", show=False),
     ]
 
     def __init__(self, config: Optional[VaultConfig] = None) -> None:
@@ -420,6 +428,7 @@ class OfflineVaultApp(App):
         _, _, free_bytes = get_disk_space(self.config.vault_dir)
         self.model = TUIStateModel(self.catalog, free_bytes)
         self.current_rows: List[ResourceItem] = []
+        self._sel_column = None
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -430,7 +439,7 @@ class OfflineVaultApp(App):
             yield Button("⚡ Start Sync (S)", variant="success", id="btn_top_sync")
         yield BudgetBarWidget(id="budget_bar")
         with Horizontal(id="filter_container"):
-            yield Input(placeholder="Filter (e.g. opensuse, lang:bs, admin, kolibri)...", id="search_input")
+            yield Input(placeholder="Filter (e.g. python, lang:bs, cat:wiki, tag:security)...", id="search_input")
             with Horizontal(id="category_bar"):
                 yield Button("All", variant="primary", id="cat_all")
                 yield Button("Admin", variant="default", id="cat_admin")
@@ -440,7 +449,7 @@ class OfflineVaultApp(App):
                 yield Button("Survival", variant="default", id="cat_survival")
                 yield Button("Maps", variant="default", id="cat_maps")
                 yield Button("Q&A", variant="default", id="cat_qna")
-                yield Button("Comics", variant="default", id="cat_fun")
+                yield Button("Books", variant="default", id="cat_fun")
                 yield Button("Tools", variant="default", id="cat_tools")
         yield DataTable(id="catalog_table")
         yield Footer()
@@ -448,7 +457,7 @@ class OfflineVaultApp(App):
     def on_mount(self) -> None:
         table = self.query_one("#catalog_table", DataTable)
         table.cursor_type = "row"
-        table.add_columns("Sel", "Name", "Category", "Lang", "Format", "Size (MB)", "Description")
+        self._sel_column = table.add_columns("Sel", "Name", "Category", "Lang", "Format", "Size (MB)", "Description")[0]
         self.refresh_table()
         self.update_budget_display()
 
@@ -511,23 +520,30 @@ class OfflineVaultApp(App):
             btn.variant = "primary" if btn.id == event.button.id else "default"
         self.refresh_table()
 
+    def _refresh_selection_cells(self, items: List[ResourceItem]) -> None:
+        """Update only the selection column so the cursor and scroll position stay put."""
+        table = self.query_one("#catalog_table", DataTable)
+        for item in items:
+            mark = "[X]" if item.id in self.model.selected_ids else "[ ]"
+            table.update_cell(item.id, self._sel_column, mark)
+
     def action_toggle_row(self) -> None:
         table = self.query_one("#catalog_table", DataTable)
         if table.cursor_row is not None and 0 <= table.cursor_row < len(self.current_rows):
             item = self.current_rows[table.cursor_row]
             self.model.toggle_item(item.id)
-            self.refresh_table()
+            self._refresh_selection_cells([item])
             self.update_budget_display()
 
     def action_select_all(self) -> None:
         visible_ids = [item.id for item in self.current_rows]
         self.model.select_all(visible_ids)
-        self.refresh_table()
+        self._refresh_selection_cells(self.current_rows)
         self.update_budget_display()
 
     def action_clear_all(self) -> None:
         self.model.selected_ids.clear()
-        self.refresh_table()
+        self._refresh_selection_cells(self.current_rows)
         self.update_budget_display()
 
     def action_focus_search(self) -> None:

@@ -3,20 +3,25 @@
 from __future__ import annotations
 
 import functools
+import html
 import http.server
+import json
 import mimetypes
 import os
 import shutil
 import socket
 import subprocess
 import sys
+import threading
 from pathlib import Path
 from typing import Dict, List, Optional
+from urllib.parse import urlsplit
 
 from rich.console import Console
 
 from offline_vault.catalog import ResourceCatalog, load_catalog
-from offline_vault.config import VaultConfig, get_disk_space, load_config
+from offline_vault.config import get_disk_space
+from offline_vault.kolibri import find_kolibri_executable, kolibri_content_dir, kolibri_env, kolibri_root
 
 
 def init_mimetypes() -> None:
@@ -42,19 +47,6 @@ def get_lan_ip() -> str:
         return ip
     except Exception:
         return "127.0.0.1"
-
-
-def find_kolibri_executable() -> Optional[str]:
-    """Locate Kolibri executable in active virtualenv, sys.path, or system PATH."""
-    venv_kolibri = Path(sys.executable).parent / "kolibri"
-    if venv_kolibri.is_file() and os.access(venv_kolibri, os.X_OK):
-        return str(venv_kolibri)
-
-    global_kolibri = shutil.which("kolibri")
-    if global_kolibri:
-        return global_kolibri
-
-    return None
 
 
 def find_kiwix_serve_executable() -> Optional[str]:
@@ -83,45 +75,90 @@ def find_kiwix_manage_executable() -> Optional[str]:
     return None
 
 
-def ensure_kiwix_library(vault_dir: Path) -> Optional[Path]:
-    """Auto-discover all ZIM files and update library.xml using kiwix-manage."""
-    zim_files = list(vault_dir.glob("**/*.zim"))
-    if not zim_files:
-        return None
-
+def rebuild_kiwix_library(vault_dir: Path) -> Optional[Path]:
+    """Rebuild library.xml from scratch so replaced ZIMs leave no stale book entries."""
+    vault_dir = Path(vault_dir)
+    zim_files = sorted(p for p in vault_dir.glob("**/*.zim") if ".tmp" not in p.relative_to(vault_dir).parts)
     library_xml = vault_dir / "library.xml"
     manage_bin = find_kiwix_manage_executable()
+    if not zim_files or not manage_bin:
+        return library_xml if library_xml.exists() else None
 
-    if manage_bin:
-        for z in zim_files:
-            try:
-                subprocess.run([manage_bin, str(library_xml), "add", str(z)], capture_output=True, check=False)
-            except Exception:
-                pass
-
+    staging = vault_dir / "library.xml.new"
+    staging.unlink(missing_ok=True)
+    added = 0
+    for z in zim_files:
+        try:
+            res = subprocess.run([manage_bin, str(staging), "add", str(z)], capture_output=True, check=False)
+            added += res.returncode == 0
+        except OSError:
+            pass
+    if added and staging.exists():
+        staging.replace(library_xml)
+    else:
+        staging.unlink(missing_ok=True)
     return library_xml if library_xml.exists() else None
 
 
-def generate_portal_dashboard(vault_dir: Path, catalog: Optional[ResourceCatalog] = None) -> Path:
+def ensure_kiwix_library(vault_dir: Path) -> Optional[Path]:
+    """Auto-discover all ZIM files and (re)build library.xml using kiwix-manage."""
+    return rebuild_kiwix_library(vault_dir)
+
+
+def _load_manifest_entries(vault_dir: Path) -> Dict[str, str]:
+    """Map item id to its installed entry URL from the sync manifest."""
+    try:
+        data = json.loads((vault_dir / ".offline-vault" / "manifest.json").read_text(encoding="utf-8"))
+        return {k: v["entry"] for k, v in data.get("items", {}).items() if isinstance(v, dict) and v.get("entry")}
+    except (OSError, ValueError, AttributeError):
+        return {}
+
+
+def root_app_ports(vault_dir: Path, catalog: ResourceCatalog, base_port: int) -> Dict[str, int]:
+    """Assign base_port+1, +2, ... to installed web apps that only work at a site root."""
+    ports: Dict[str, int] = {}
+    for item in catalog.items:
+        app_dir = Path(vault_dir) / item.category / item.id
+        if item.serve_root and (app_dir / "index.html").is_file():
+            ports[item.id] = base_port + 1 + len(ports)
+    return ports
+
+
+class SpaRequestHandler(http.server.SimpleHTTPRequestHandler):
+    """Serves index.html for unknown extension-less paths (history-mode single-page apps)."""
+
+    def send_head(self):  # type: ignore[override]
+        request_path = urlsplit(self.path).path
+        if not os.path.exists(self.translate_path(self.path)) and "." not in request_path.rsplit("/", 1)[-1]:
+            self.path = "/index.html"
+        return super().send_head()
+
+
+def generate_portal_dashboard(
+    vault_dir: Path,
+    catalog: Optional[ResourceCatalog] = None,
+    root_ports: Optional[Dict[str, int]] = None,
+) -> Path:
     """Generate a lightweight, responsive offline intranet portal at <vault_dir>/index.html."""
     cat = catalog or load_catalog()
     total, used, free = get_disk_space(vault_dir)
     free_gb = free / (1024 * 1024 * 1024)
 
     # Collect downloaded items
+    entries = _load_manifest_entries(vault_dir)
     downloaded_tools: List[Dict[str, str]] = []
     tools_dir = vault_dir / "tools"
     if tools_dir.is_dir():
         for tool_item in cat.filter(category="tools"):
             tool_folder = tools_dir / tool_item.id
-            index_path = tool_folder / "index.html"
-            if index_path.exists() or tool_folder.is_dir():
-                # Find entrypoint
-                entry = f"tools/{tool_item.id}/index.html" if index_path.exists() else f"tools/{tool_item.id}/"
+            if tool_folder.is_dir():
+                entry_rel = entries.get(tool_item.id) or "index.html"
+                port = (root_ports or {}).get(tool_item.id)
                 downloaded_tools.append({
                     "name": tool_item.name,
                     "desc": tool_item.description,
-                    "link": entry,
+                    "link": f"http://localhost:{port}/" if port else f"tools/{tool_item.id}/{entry_rel}",
+                    "port": str(port) if port else "",
                     "id": tool_item.id,
                 })
 
@@ -131,14 +168,14 @@ def generate_portal_dashboard(vault_dir: Path, catalog: Optional[ResourceCatalog
         if cdir.is_dir():
             for item in cat.filter(category=cat_name):
                 # Check for extracted folder or canonical file
-                folder_entry = cdir / item.id / "index.html"
+                folder_entry = cdir / item.id
                 file_entry = cdir / f"{item.id}.{item.format}"
-                if folder_entry.exists():
+                if item.is_archive and folder_entry.is_dir():
                     downloaded_docs.append({
                         "name": item.name,
                         "category": item.category.upper(),
                         "desc": item.description,
-                        "link": f"{cat_name}/{item.id}/index.html",
+                        "link": f"{cat_name}/{item.id}/{entries.get(item.id) or 'index.html'}",
                         "type": "Interactive Web",
                     })
                 elif file_entry.exists():
@@ -276,8 +313,8 @@ def generate_portal_dashboard(vault_dir: Path, catalog: Optional[ResourceCatalog
         This vault is served locally on your machine and across your Wi-Fi hotspot:
       </p>
       <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-        <a class="btn btn-outline" href="http://localhost:8080" target="_blank">🎓 Kolibri LMS (Port 8080)</a>
-        <a class="btn btn-outline" href="http://localhost:8000" target="_blank">📁 Kiwix Server (Port 8000)</a>
+        <a class="btn btn-outline host-link" data-port="8080" href="http://localhost:8080" target="_blank">🎓 Kolibri LMS (Port 8080)</a>
+        <a class="btn btn-outline host-link" data-port="8000" href="http://localhost:8000" target="_blank">📁 Kiwix Server (Port 8000)</a>
       </div>
     </div>
 
@@ -289,10 +326,10 @@ def generate_portal_dashboard(vault_dir: Path, catalog: Optional[ResourceCatalog
         for t in downloaded_tools:
             html_content += f"""      <div class="card">
         <div>
-          <h3>{t['name']}</h3>
-          <p>{t['desc']}</p>
+          <h3>{html.escape(t['name'])}</h3>
+          <p>{html.escape(t['desc'])}</p>
         </div>
-        <a class="btn" href="{t['link']}">Launch Tool 🚀</a>
+        <a class="btn{' host-link' if t['port'] else ''}" data-port="{t['port']}" href="{html.escape(t['link'], quote=True)}">Launch Tool 🚀</a>
       </div>\n"""
     else:
         html_content += """      <div class="card" style="grid-column: 1 / -1;">
@@ -309,19 +346,25 @@ def generate_portal_dashboard(vault_dir: Path, catalog: Optional[ResourceCatalog
         for d in downloaded_docs:
             html_content += f"""      <div class="card">
         <div>
-          <span class="badge" style="float: right;">{d['category']}</span>
-          <h3>{d['name']}</h3>
-          <p>{d['desc']}</p>
+          <span class="badge" style="float: right;">{html.escape(d['category'])}</span>
+          <h3>{html.escape(d['name'])}</h3>
+          <p>{html.escape(d['desc'])}</p>
         </div>
-        <a class="btn btn-outline" href="{d['link']}">Open Resource 📂</a>
+        <a class="btn btn-outline" href="{html.escape(d['link'], quote=True)}">Open Resource 📂</a>
       </div>\n"""
     else:
         html_content += """      <div class="card" style="grid-column: 1 / -1;">
-        <p>No documentation downloaded yet. Run <code>offline-vault sync --category dev</code> or use the TUI to select docsets and manuals.</p>
+        <p>No documentation downloaded yet. Run <code>offline-vault sync --category dev</code> or use the TUI to select references and manuals.</p>
       </div>\n"""
 
     html_content += """    </div>
   </div>
+  <script>
+    // Point port-based links at the host this page was opened from (phone on the same Wi-Fi)
+    document.querySelectorAll(".host-link").forEach(function (a) {
+      a.href = location.protocol + "//" + location.hostname + ":" + a.dataset.port + "/";
+    });
+  </script>
 </body>
 </html>"""
 
@@ -349,18 +392,30 @@ def run_static_server(
     vault_dir = Path(vault_dir).resolve()
     vault_dir.mkdir(parents=True, exist_ok=True)
 
-    # Generate dashboard
-    generate_portal_dashboard(vault_dir)
+    catalog = load_catalog()
+    ports = root_app_ports(vault_dir, catalog, port)
+    generate_portal_dashboard(vault_dir, catalog, root_ports=ports)
 
     handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(vault_dir))
     lan_ip = get_lan_ip()
+    app_servers: List[VaultThreadingServer] = []
 
     try:
+        for item_id, app_port in ports.items():
+            item = catalog.get_by_id(item_id)
+            app_dir = vault_dir / item.category / item.id
+            app_handler = functools.partial(SpaRequestHandler, directory=str(app_dir))
+            app_server = VaultThreadingServer((host, app_port), app_handler)
+            threading.Thread(target=app_server.serve_forever, daemon=True).start()
+            app_servers.append(app_server)
+
         with VaultThreadingServer((host, port), handler) as httpd:
             con.print(f"[bold green]Offline Static Portal & Web Apps running on port {port}![/bold green]")
             con.print(f" • [cyan]Local PC:[/cyan]      http://localhost:{port}")
             if lan_ip != "127.0.0.1":
                 con.print(f" • [cyan]Local Network:[/cyan] http://{lan_ip}:{port} [dim](open on phone/tablet over Wi-Fi/Hotspot)[/dim]")
+            for item_id, app_port in ports.items():
+                con.print(f" • [cyan]{catalog.get_by_id(item_id).name}:[/cyan] http://localhost:{app_port} [dim](needs its own site root)[/dim]")
             con.print("[dim]Press Ctrl+C to stop.[/dim]\n")
             httpd.serve_forever()
     except KeyboardInterrupt:
@@ -369,6 +424,10 @@ def run_static_server(
     except Exception as e:
         con.print(f"[bold red]Failed to start static server: {e}[/bold red]")
         return 1
+    finally:
+        for app_server in app_servers:
+            app_server.shutdown()
+            app_server.server_close()
 
 
 def run_kolibri_server(
@@ -380,8 +439,7 @@ def run_kolibri_server(
     """Run Kolibri LMS server using isolated vault storage."""
     con = console or Console()
     vault_dir = Path(vault_dir).resolve()
-    kolibri_dir = vault_dir / "tutorials" / "kolibri"
-    kolibri_dir.mkdir(parents=True, exist_ok=True)
+    kolibri_content_dir(vault_dir).mkdir(parents=True, exist_ok=True)
 
     kolibri_bin = find_kolibri_executable()
     if not kolibri_bin:
@@ -393,9 +451,9 @@ def run_kolibri_server(
         return 1
 
     con.print(f"[bold cyan]Launching Kolibri LMS on port {port}...[/bold cyan]")
-    con.print(f"[dim]KOLIBRI_HOME: {kolibri_dir}[/dim]")
-    env = os.environ.copy()
-    env["KOLIBRI_HOME"] = str(kolibri_dir)
+    env = kolibri_env(vault_dir)
+    con.print(f"[dim]KOLIBRI_CONTENT_DIR: {env['KOLIBRI_CONTENT_DIR']}[/dim]")
+    con.print(f"[dim]Other devices: import channels from the folder {kolibri_root(vault_dir)}[/dim]")
 
     cmd = [kolibri_bin, "start", f"--port={port}", "--foreground"]
     try:

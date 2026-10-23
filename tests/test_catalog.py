@@ -23,8 +23,8 @@ def test_us2_1_all_required_domains_present():
     item_ids = {item.id for item in catalog.items}
 
     # Verify key items
-    assert any("opensuse" in item_id for item_id in item_ids)
     assert any("archwiki" in item_id for item_id in item_ids)
+    assert any("termux" in item_id for item_id in item_ids)
     assert any("powershell" in item_id or "windows" in item_id for item_id in item_ids)
     assert any("php" in item_id for item_id in item_ids)
     assert any("javascript" in item_id or "mdn" in item_id for item_id in item_ids)
@@ -68,9 +68,9 @@ def test_us2_1_filter_by_category():
 
 def test_us2_1_search_query():
     catalog = load_catalog()
-    results = catalog.search("openSUSE")
+    results = catalog.search("ArchWiki")
     assert len(results) > 0
-    assert any("opensuse" in r.name.lower() or "opensuse" in r.id.lower() for r in results)
+    assert any("archwiki" in r.name.lower() or "archwiki" in r.id.lower() for r in results)
 
 
 def test_us2_1_calculate_selected_size():

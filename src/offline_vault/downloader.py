@@ -1,22 +1,28 @@
-"""High-throughput multi-backend resumable downloader with dynamic latest-version resolution."""
+"""High-throughput multi-backend resumable downloader with integrity checks."""
 
 from __future__ import annotations
 
 import hashlib
-import os
 import re
 import shutil
 import subprocess
+import tarfile
 import time
-import urllib.request
-import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, Optional
 
 import requests
 
-_KIWIX_CACHE: Optional[Dict[str, str]] = None
+USER_AGENT = "OfflineVault/0.2"
+
+# Leading bytes identifying each downloadable format
+FILE_SIGNATURES: Dict[str, bytes] = {
+    "zim": b"ZIM\x04",
+    "zip": b"PK\x03\x04",
+    "epub": b"PK\x03\x04",
+    "map": b"mapsforge binary OSM",
+}
 
 
 def has_aria2() -> bool:
@@ -24,111 +30,41 @@ def has_aria2() -> bool:
     return shutil.which("aria2c") is not None
 
 
+def sha256_of_file(path: Path) -> str:
+    """Return the SHA-256 hex digest of a file."""
+    hasher = hashlib.sha256()
+    with open(path, "rb") as f:
+        while chunk := f.read(1024 * 1024):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
 def verify_file_hash(path: Path, expected_sha256: str) -> bool:
     """Verify SHA-256 integrity hash of a file."""
     if not path.is_file():
         return False
-    hasher = hashlib.sha256()
-    with open(path, "rb") as f:
-        while chunk := f.read(65536):
-            hasher.update(chunk)
-    return hasher.hexdigest().lower() == expected_sha256.lower()
+    return sha256_of_file(path) == expected_sha256.lower()
 
 
-def extract_kiwix_date_stamp(url_or_filename: str) -> Tuple[int, int]:
-    """Extract (year, month) from Kiwix filename like name_YYYY-MM.zim."""
-    match = re.search(r"_(\d{4})-(\d{2})\.zim", url_or_filename)
-    if match:
-        return int(match.group(1)), int(match.group(2))
-    return (0, 0)
-
-
-def get_kiwix_library_map() -> Dict[str, str]:
-    """Fetch and parse Kiwix library XML, mapping base names to their latest live URLs."""
-    global _KIWIX_CACHE
-    if _KIWIX_CACHE is not None:
-        return _KIWIX_CACHE
-
-    _KIWIX_CACHE = {}
-    grouped_by_base: Dict[str, List[Tuple[Tuple[int, int], str]]] = {}
-
+def check_file_signature(path: Path, fmt: str) -> Optional[str]:
+    """Return an error message if the file does not look like the expected format."""
     try:
-        req = urllib.request.Request(
-            "https://download.kiwix.org/library/library_zim.xml",
-            headers={"User-Agent": "OfflineVault/1.0"},
-        )
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            tree = ET.parse(resp)
-        root = tree.getroot()
-        for b in root.findall("book"):
-            url = b.attrib.get("url", "").replace(".meta4", "")
-            if not url or not url.endswith(".zim"):
-                continue
-            fn = url.split("/")[-1]
-            base = re.sub(r"_\d{4}-\d{2}\.zim$", "", fn)
-            date_stamp = extract_kiwix_date_stamp(fn)
-
-            if base not in grouped_by_base:
-                grouped_by_base[base] = []
-            grouped_by_base[base].append((date_stamp, url))
-
-        # Pick the latest version for each base
-        for base, versions in grouped_by_base.items():
-            versions.sort(key=lambda x: x[0])
-            latest_url = versions[-1][1]
-            _KIWIX_CACHE[base] = latest_url
-            _KIWIX_CACHE[base.replace("_maxi", "").replace("_nopic", "")] = latest_url
-    except Exception:
-        pass
-    return _KIWIX_CACHE
-
-
-def resolve_upstream_url(url: str) -> str:
-    """Dynamically resolve outdated or mirror URLs to the newest active endpoint."""
-    if "github.com/gchq/CyberChef" in url:
-        try:
-            req = urllib.request.Request(
-                "https://api.github.com/repos/gchq/CyberChef/releases/latest",
-                headers={"User-Agent": "OfflineVault/1.0"},
-            )
-            with urllib.request.urlopen(req, timeout=5) as resp:
-                import json
-                data = json.loads(resp.read().decode())
-                for asset in data.get("assets", []):
-                    if asset.get("name", "").startswith("CyberChef_") and asset.get("name", "").endswith(".zip"):
-                        return asset.get("browser_download_url")
-        except Exception:
-            pass
-
-    if "github.com/CorentinTh/it-tools" in url:
-        try:
-            req = urllib.request.Request(
-                "https://api.github.com/repos/CorentinTh/it-tools/releases/latest",
-                headers={"User-Agent": "OfflineVault/1.0"},
-            )
-            with urllib.request.urlopen(req, timeout=5) as resp:
-                import json
-                data = json.loads(resp.read().decode())
-                for asset in data.get("assets", []):
-                    if asset.get("name", "").startswith("it-tools") and asset.get("name", "").endswith(".zip"):
-                        return asset.get("browser_download_url")
-        except Exception:
-            pass
-
-    if "download.kiwix.org" in url:
-        fn = url.split("/")[-1]
-        base = re.sub(r"_\d{4}-\d{2}\.zim$", "", fn).replace(".zim", "")
-
-        # Lookup in library map to find the newest dated version
-        lib_map = get_kiwix_library_map()
-        if base in lib_map:
-            return lib_map[base]
-
-        for k, v in lib_map.items():
-            if base in k or k in base or ("explainxkcd" in base and "explainxkcd" in k):
-                return v
-
-    return url
+        with open(path, "rb") as f:
+            head = f.read(64)
+    except OSError as e:
+        return f"Cannot read downloaded file: {e}"
+    if not head:
+        return "Downloaded file is empty"
+    if fmt == "tar":
+        if tarfile.is_tarfile(path):
+            return None
+        return "File signature mismatch: not a tar archive"
+    signature = FILE_SIGNATURES.get(fmt)
+    if signature is not None and not head.startswith(signature):
+        if head.lstrip().lower().startswith((b"<!doctype", b"<html")):
+            return f"File signature mismatch: server returned an HTML page instead of a {fmt} file"
+        return f"File signature mismatch: not a valid {fmt} file"
+    return None
 
 
 @dataclass
@@ -181,29 +117,53 @@ class DownloaderEngine:
         tmp_path = dest_path.with_name(dest_path.name + ".tmp")
 
         start_time = time.time()
-        resolved_url = resolve_upstream_url(url)
-
-        if self.prefer_aria2 and resolved_url.startswith("https://"):
-            result = self._download_aria2(resolved_url, dest_path, tmp_path, progress_callback)
-            if not result.success:
-                # Fallback to python streamer
-                result = self._download_python(resolved_url, dest_path, tmp_path, progress_callback)
-        else:
-            result = self._download_python(resolved_url, dest_path, tmp_path, progress_callback)
+        result = self._download_with_fallback(url, dest_path, tmp_path, progress_callback)
 
         if result.success and expected_sha256:
             if not verify_file_hash(dest_path, expected_sha256):
                 dest_path.unlink(missing_ok=True)
                 return DownloadResult(
-                    url=resolved_url,
+                    url=url,
                     destination=dest_path,
                     success=False,
-                    error_message="Checksum verification failed",
+                    error_message="SHA-256 checksum verification failed",
                     time_taken_sec=time.time() - start_time,
                 )
 
         result.time_taken_sec = time.time() - start_time
         return result
+
+    def _download_with_fallback(
+        self,
+        url: str,
+        dest_path: Path,
+        tmp_path: Path,
+        progress_callback: Optional[Callable[[DownloadProgress], None]],
+    ) -> DownloadResult:
+        """Try aria2c first; on failure restart cleanly with the Python streamer."""
+        if self.prefer_aria2 and url.startswith("https://"):
+            result = self._download_aria2(url, dest_path, tmp_path, progress_callback)
+            if result.success:
+                return result
+            # aria2c writes segments at scattered offsets; its partial file cannot be
+            # resumed by appending, so discard it together with the control file.
+            tmp_path.unlink(missing_ok=True)
+            tmp_path.with_name(tmp_path.name + ".aria2").unlink(missing_ok=True)
+            shutil.rmtree(self._aria2_workdir(tmp_path), ignore_errors=True)
+        return self._download_python(url, dest_path, tmp_path, progress_callback)
+
+    @staticmethod
+    def _aria2_workdir(tmp_path: Path) -> Path:
+        return tmp_path.with_name(tmp_path.name + ".aria2d")
+
+    @staticmethod
+    def _aria2_output(workdir: Path, expected_name: str) -> Optional[Path]:
+        """Return aria2's finished file; metalinks make aria2 use the upstream file name."""
+        expected = workdir / expected_name
+        if expected.is_file():
+            return expected
+        files = [p for p in workdir.iterdir() if p.is_file() and not p.name.endswith(".aria2")] if workdir.is_dir() else []
+        return files[0] if len(files) == 1 else None
 
     def _download_aria2(
         self,
@@ -213,18 +173,22 @@ class DownloaderEngine:
         progress_callback: Optional[Callable[[DownloadProgress], None]],
     ) -> DownloadResult:
         """Download using aria2c with live line streaming for immediate feedback."""
+        # Private work dir: Kiwix serves metalinks (mirrors + hashes) and aria2 then
+        # saves under the upstream file name, ignoring --out.
+        workdir = self._aria2_workdir(tmp_path)
+        workdir.mkdir(parents=True, exist_ok=True)
         cmd = [
             "aria2c",
             "--allow-overwrite=true",
             "--auto-file-renaming=false",
             "--follow-metalink=mem",
             "--file-allocation=none",
-            "--user-agent=OfflineVault/1.0",
+            f"--user-agent={USER_AGENT}",
             f"--max-connection-per-server={self.split_connections}",
             f"--split={self.split_connections}",
             "--min-split-size=1M",
             "--continue=true",
-            f"--dir={tmp_path.parent}",
+            f"--dir={workdir}",
             f"--out={tmp_path.name}",
             "--check-certificate=true",
             "--summary-interval=1",
@@ -265,8 +229,10 @@ class DownloaderEngine:
 
             process.wait()
 
-            if process.returncode == 0 and tmp_path.exists():
-                tmp_path.replace(dest_path)
+            output = self._aria2_output(workdir, tmp_path.name) if process.returncode == 0 else None
+            if output is not None:
+                output.replace(dest_path)
+                shutil.rmtree(workdir, ignore_errors=True)
                 final_size = dest_path.stat().st_size
                 if progress_callback:
                     progress_callback(
@@ -285,11 +251,14 @@ class DownloaderEngine:
                     success=True,
                     bytes_downloaded=final_size,
                 )
+            reason = f"aria2c exited with code {process.returncode}"
+            if process.returncode == 0:
+                reason = "aria2c finished but produced no single output file"
             return DownloadResult(
                 url=url,
                 destination=dest_path,
                 success=False,
-                error_message=f"aria2c exited with code {process.returncode}",
+                error_message=reason,
             )
         except Exception as e:
             return DownloadResult(
@@ -308,7 +277,7 @@ class DownloaderEngine:
     ) -> DownloadResult:
         """Download using Python requests with HTTP Range headers for resuming."""
         existing_size = tmp_path.stat().st_size if tmp_path.exists() else 0
-        headers = {"User-Agent": "OfflineVault/1.0"}
+        headers = {"User-Agent": USER_AGENT}
         if existing_size > 0:
             headers["Range"] = f"bytes={existing_size}-"
 
@@ -320,6 +289,10 @@ class DownloaderEngine:
                 allow_redirects=True,
                 timeout=self.timeout,
             ) as response:
+                if response.status_code == 416 and existing_size > 0:
+                    # Partial no longer matches upstream: restart from scratch
+                    tmp_path.unlink(missing_ok=True)
+                    return self._download_python(url, dest_path, tmp_path, progress_callback)
                 if response.status_code not in (200, 206):
                     return DownloadResult(
                         url=url,
@@ -375,6 +348,14 @@ class DownloaderEngine:
                                     percent=percent,
                                 )
                             )
+
+            if total_bytes is not None and downloaded != total_bytes:
+                return DownloadResult(
+                    url=url,
+                    destination=dest_path,
+                    success=False,
+                    error_message=f"Incomplete download: {downloaded} of {total_bytes} bytes",
+                )
 
             # Atomic move on success
             tmp_path.replace(dest_path)
