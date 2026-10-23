@@ -21,11 +21,12 @@ SHA = "a" * 64
 
 
 class FakeResponse:
-    def __init__(self, status_code=200, content=b"", payload=None):
+    def __init__(self, status_code=200, content=b"", payload=None, headers=None):
         self.status_code = status_code
         self.content = content
         self.text = content.decode() if isinstance(content, bytes) else content
         self._payload = payload
+        self.headers = headers or {}
 
     def json(self):
         return self._payload
@@ -137,3 +138,72 @@ def test_resolver_rejects_non_https_results(tmp_path):
                  asset_pattern=r"app\.zip", upstream_url="https://github.com/pinned.zip")
     res = Resolver(session=FakeSession({api: FakeResponse(payload=payload)}), cache_dir=tmp_path).resolve(item)
     assert res.url == "https://github.com/pinned.zip"
+
+
+def test_resolve_oci_picks_top_layer_of_linux_amd64_and_follows_blob_redirect(tmp_path):
+    image = "excalidraw/excalidraw"
+    token_url = f"https://auth.docker.io/token?service=registry.docker.io&scope=repository:{image}:pull"
+    reg = f"https://registry-1.docker.io/v2/{image}"
+    layer = "sha256:" + "b" * 64
+    session = FakeSession({
+        token_url: FakeResponse(payload={"token": "t0k"}),
+        f"{reg}/manifests/latest": FakeResponse(payload={
+            "mediaType": "application/vnd.oci.image.index.v1+json",
+            "manifests": [
+                {"digest": "sha256:arm", "platform": {"architecture": "arm64", "os": "linux"}},
+                {"digest": "sha256:amd", "platform": {"architecture": "amd64", "os": "linux"}},
+            ]}),
+        f"{reg}/manifests/sha256:amd": FakeResponse(payload={"layers": [
+            {"mediaType": "application/vnd.oci.image.layer.v1.tar+gzip", "digest": "sha256:" + "a" * 64, "size": 10},
+            {"mediaType": "application/vnd.oci.image.layer.v1.tar+gzip", "digest": layer, "size": 2048},
+        ]}),
+        f"{reg}/blobs/{layer}": FakeResponse(status_code=307, headers={"Location": "https://cdn.example/blob?sig=1"}),
+    })
+    item = _item(category="tools", format="tar", source="oci", oci_image=image, oci_tag="latest",
+                 upstream_url="https://hub.docker.com/r/excalidraw/excalidraw")
+    res = Resolver(session=session, cache_dir=tmp_path).resolve(item)
+    assert res.url == "https://cdn.example/blob?sig=1"
+    assert res.sha256 == "b" * 64
+    assert res.size_bytes == 2048
+
+
+def test_resolve_oci_rejects_non_gzip_layers(tmp_path):
+    image = "a/b"
+    token_url = f"https://auth.docker.io/token?service=registry.docker.io&scope=repository:{image}:pull"
+    reg = f"https://registry-1.docker.io/v2/{image}"
+    session = FakeSession({
+        token_url: FakeResponse(payload={"token": "t"}),
+        f"{reg}/manifests/latest": FakeResponse(payload={"layers": [
+            {"mediaType": "application/vnd.oci.image.layer.v1.tar+zstd", "digest": "sha256:" + "c" * 64, "size": 1}]}),
+    })
+    item = _item(category="tools", format="tar", source="oci", oci_image=image, oci_tag="latest",
+                 upstream_url="https://hub.docker.com/r/a/b")
+    assert Resolver(session=session, cache_dir=tmp_path).resolve(item).url == item.upstream_url
+
+
+def test_resolve_fdroid_suggested_apk(tmp_path):
+    pkg = "com.google.android.stardroid"
+    session = FakeSession({f"https://f-droid.org/api/v1/packages/{pkg}": FakeResponse(payload={
+        "packageName": pkg, "suggestedVersionCode": 1763,
+        "packages": [{"versionName": "2.1.5-beta", "versionCode": 1770}, {"versionName": "2.1.4", "versionCode": 1763}]})})
+    item = _item(category="apps", format="apk", source="fdroid", fdroid_package=pkg,
+                 upstream_url=f"https://f-droid.org/packages/{pkg}/")
+    res = Resolver(session=session, cache_dir=tmp_path).resolve(item)
+    assert res.url == f"https://f-droid.org/repo/{pkg}_1763.apk"
+
+
+def test_github_token_from_environment_is_sent_only_to_api(tmp_path, monkeypatch):
+    api = "https://api.github.com/repos/a/b/releases/latest"
+    seen = {}
+
+    class RecordingSession(FakeSession):
+        def get(self, url, **kwargs):
+            seen[url] = kwargs.get("headers", {})
+            return super().get(url, **kwargs)
+
+    payload = {"assets": [{"name": "app.zip", "browser_download_url": "https://github.com/a/b/app.zip"}]}
+    monkeypatch.setenv("GITHUB_TOKEN", "ghp_test")
+    item = _item(category="tools", format="zip", source="github", github_repo="a/b",
+                 asset_pattern=r"app\.zip", upstream_url="https://github.com/pinned.zip")
+    Resolver(session=RecordingSession({api: FakeResponse(payload=payload)}), cache_dir=tmp_path).resolve(item)
+    assert seen[api]["Authorization"] == "Bearer ghp_test"

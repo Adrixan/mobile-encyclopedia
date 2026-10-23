@@ -22,6 +22,10 @@ FILE_SIGNATURES: Dict[str, bytes] = {
     "zip": b"PK\x03\x04",
     "epub": b"PK\x03\x04",
     "map": b"mapsforge binary OSM",
+    "apk": b"PK\x03\x04",
+    # Z-machine story files start with their version byte
+    "z5": b"\x05",
+    "z8": b"\x08",
 }
 
 

@@ -31,8 +31,9 @@ def build_parser() -> argparse.ArgumentParser:
     list_p = subparsers.add_parser("list", help="List available resources in catalog")
     list_p.add_argument("--category", "-c", help="Filter by category (admin, dev, wiki, survival, maps, etc.)")
     list_p.add_argument("--language", "-l", help="Filter by language code (en, es, bs, hr, sr, sl, fr, ar)")
-    list_p.add_argument("--format", "-f", help="Filter by format (zim, epub, map, zip, tar, kolibri)")
+    list_p.add_argument("--format", "-f", help="Filter by format (zim, epub, map, zip, tar, kolibri, apk, z5, z8)")
     list_p.add_argument("--query", "-q", help="Search query")
+    list_p.add_argument("--tag", "-t", help="Filter by tag (e.g. starter, android, security)")
 
     # Status
     status_p = subparsers.add_parser("status", help="Inspect vault path, disk usage, and downloaded items")
@@ -43,6 +44,7 @@ def build_parser() -> argparse.ArgumentParser:
     sync_p.add_argument("--all", action="store_true", help="Sync all catalog resources")
     sync_p.add_argument("--category", "-c", help="Sync all items in category (combinable with --language)")
     sync_p.add_argument("--language", "-l", help="Sync all items in language (combinable with --category)")
+    sync_p.add_argument("--tag", "-t", help="Sync all items with this tag, e.g. 'starter' (combinable)")
     sync_p.add_argument("--id", "-i", action="append", help="Specific resource ID(s) to sync")
     sync_p.add_argument("--force", "--update", "-u", action="store_true", help="Force update/re-download and prune old versions")
     sync_p.add_argument("--vault-dir", help="Override vault directory")
@@ -70,6 +72,8 @@ def handle_list(args: argparse.Namespace, catalog: ResourceCatalog, console: Con
         items = [i for i in items if i.format.lower() == args.format.lower()]
     if args.query:
         items = [i for i in items if i.matches_query(args.query)]
+    if args.tag:
+        items = [i for i in items if args.tag.lower() in (t.lower() for t in i.tags)]
 
     table = Table(title="Offline Knowledge Catalog", show_header=True, header_style="bold cyan")
     table.add_column("ID", style="dim")
@@ -130,10 +134,10 @@ def handle_sync(args: argparse.Namespace, config: VaultConfig, catalog: Resource
         target_ids = {i.id for i in catalog.items}
     elif args.id:
         target_ids = set(args.id)
-    elif args.category or args.language:
-        target_ids = {i.id for i in catalog.filter(category=args.category, language=args.language)}
+    elif args.category or args.language or args.tag:
+        target_ids = {i.id for i in catalog.filter(category=args.category, language=args.language, tag=args.tag)}
     else:
-        console.print("[bold red]Error: Specify --all, --category, --language, or --id to sync.[/bold red]")
+        console.print("[bold red]Error: Specify --all, --category, --language, --tag, or --id to sync.[/bold red]")
         return 1
     if not target_ids:
         console.print("[bold yellow]No catalog items match the given filters.[/bold yellow]")

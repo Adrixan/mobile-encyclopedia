@@ -94,3 +94,35 @@ def test_serve_root_flag_parsed_and_typed():
     assert item.serve_root is True
     with pytest.raises(ValueError, match="serve_root"):
         validate_resource_item(_base(format="zip", category="tools", serve_root="yes"))
+
+
+def test_oci_source_requires_valid_image_and_tag():
+    base = dict(format="tar", category="tools", entrypoint="index.html")
+    with pytest.raises(ValueError, match="oci_image"):
+        validate_resource_item(_base(source="oci", oci_image="Bad Image", **base))
+    with pytest.raises(ValueError, match="oci_tag"):
+        validate_resource_item(_base(source="oci", oci_image="excalidraw/excalidraw", oci_tag="../x", **base))
+    item = validate_resource_item(_base(source="oci", oci_image="excalidraw/excalidraw", **base))
+    assert item.oci_tag == "latest"
+
+
+def test_fdroid_source_requires_package_and_apk_format():
+    with pytest.raises(ValueError, match="fdroid_package"):
+        validate_resource_item(_base(source="fdroid", format="apk", category="apps", fdroid_package="not a package"))
+    with pytest.raises(ValueError, match="apk"):
+        validate_resource_item(_base(source="fdroid", format="zim", fdroid_package="com.google.android.stardroid"))
+    item = validate_resource_item(
+        _base(source="fdroid", format="apk", category="apps", fdroid_package="com.google.android.stardroid"))
+    assert item.fdroid_package == "com.google.android.stardroid"
+
+
+def test_new_formats_and_apps_category_accepted():
+    for fmt in ("apk", "z5", "z8"):
+        assert validate_resource_item(_base(format=fmt, category="apps" if fmt == "apk" else "fun")).format == fmt
+
+
+def test_catalog_items_fit_on_a_phone_or_say_so():
+    catalog = load_catalog()
+    for item in catalog.items:
+        if item.size_mb > 20000:
+            assert "large" in item.description.lower(), f"{item.id} is {item.size_mb} MB without a size warning"

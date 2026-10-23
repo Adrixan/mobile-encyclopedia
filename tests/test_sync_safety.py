@@ -251,3 +251,15 @@ def test_tool_with_missing_entrypoint_fails_and_keeps_previous_install(tmp_path)
     assert summary.failed == 1
     assert "entrypoint" in summary.errors[item.id]
     assert (app_dir / "index.html").read_text() == "previous"
+
+
+def test_signed_url_change_with_same_checksum_is_skipped(tmp_path):
+    """Docker CDN URLs are signed per request; the layer digest identifies the content."""
+    item = _zim_item("excalidraw_like")
+    digest = hashlib.sha256(ZIM_BYTES).hexdigest()
+    resolver = StaticResolver({item.id: ResolvedSource("https://cdn.example/blob?sig=1", sha256=digest)})
+    mgr = _manager(tmp_path, [item], resolver)
+    mgr.engine.download = _writer(ZIM_BYTES)
+    assert mgr.sync_items([item.id]).completed == 1
+    resolver.overrides[item.id] = ResolvedSource("https://cdn.example/blob?sig=2", sha256=digest)
+    assert mgr.sync_items([item.id]).skipped == 1

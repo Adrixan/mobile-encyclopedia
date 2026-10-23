@@ -18,7 +18,7 @@ resources:
     kiwix_flavour: "maxi"
     upstream_url: "https://lb.download.kiwix.org/zim/other/archlinux_en_all_maxi_2026-10.zim"
     description: "Arch Linux wiki: systemd, networking, boot, desktop and service configuration."
-    tags: ["distro", "arch", "admin", "linux"]
+    tags: ["distro", "arch", "admin", "linux", "starter"]
 
   - id: "gentoo_wiki_en"
     name: "Gentoo Wiki"
@@ -44,7 +44,7 @@ resources:
     kiwix_flavour: "maxi"
     upstream_url: "https://lb.download.kiwix.org/zim/other/termux_en_all_maxi_2022-12.zim"
     description: "Termux packages, storage access, add-ons and Android shell usage."
-    tags: ["android", "termux", "admin", "linux"]
+    tags: ["android", "termux", "admin", "linux", "starter"]
 
   - id: "debian_admin_handbook"
     name: "The Debian Administrator's Handbook"
@@ -68,6 +68,42 @@ resources:
     upstream_url: "https://lb.download.kiwix.org/zim/devdocs/devdocs_en_powershell_2026-10.zim"
     description: "PowerShell cmdlets and language reference."
     tags: ["admin", "windows", "powershell"]
+
+  - id: "anonymous_planet_guide"
+    name: "The Guide to Online Anonymity"
+    category: "admin"
+    language: "en"
+    format: "zim"
+    size_mb: 27
+    source: "kiwix"
+    kiwix_name: "anonymousplanet.org_en_all"
+    upstream_url: "https://lb.download.kiwix.org/zim/zimit/anonymousplanet.org_en_all_2026-05.zim"
+    description: "Anonymous Planet's guide to privacy, OPSEC and anonymity."
+    tags: ["admin", "privacy", "opsec", "security", "starter"]
+
+  - id: "opsec_bible"
+    name: "The OpSec Bible"
+    category: "admin"
+    language: "en"
+    format: "zim"
+    size_mb: 166
+    source: "kiwix"
+    kiwix_name: "privacydefence.org_en_opsecbible"
+    upstream_url: "https://lb.download.kiwix.org/zim/zimit/privacydefence.org_en_opsecbible_2026-09.zim"
+    description: "Operational security and privacy tutorials (Tor, Whonix, self-hosting)."
+    tags: ["admin", "privacy", "opsec", "security", "sovereignty", "starter"]
+
+  - id: "openwrt_docs"
+    name: "OpenWrt Documentation"
+    category: "admin"
+    language: "en"
+    format: "zim"
+    size_mb: 496
+    source: "kiwix"
+    kiwix_name: "openwrt.org_en_all"
+    upstream_url: "https://lb.download.kiwix.org/zim/zimit/openwrt.org_en_all_2026-07.zim"
+    description: "OpenWrt router firmware wiki: networking, firewall, VPN, hardware."
+    tags: ["admin", "networking", "router", "sovereignty"]
   # --------------------------------------------------------------------------
   # Programming, Web & DevOps References (DevDocs ZIMs)
   # --------------------------------------------------------------------------
@@ -82,7 +118,7 @@ resources:
     kiwix_name: "devdocs_en_python"
     upstream_url: "https://lb.download.kiwix.org/zim/devdocs/devdocs_en_python_2026-08.zim"
     description: "Python standard library, language reference and tutorial."
-    tags: ["dev", "python", "programming"]
+    tags: ["dev", "python", "programming", "starter"]
 
   - id: "devdocs_rust"
     name: "Rust Documentation (DevDocs)"
@@ -142,7 +178,7 @@ resources:
     kiwix_name: "devdocs_en_php"
     upstream_url: "https://lb.download.kiwix.org/zim/devdocs/devdocs_en_php_2026-08.zim"
     description: "PHP functions, classes and language reference."
-    tags: ["dev", "php", "programming"]
+    tags: ["dev", "php", "programming", "starter"]
 
   - id: "devdocs_javascript"
     name: "JavaScript Reference (DevDocs, MDN)"
@@ -154,7 +190,7 @@ resources:
     kiwix_name: "devdocs_en_javascript"
     upstream_url: "https://lb.download.kiwix.org/zim/devdocs/devdocs_en_javascript_2026-10.zim"
     description: "MDN JavaScript language and built-in objects reference."
-    tags: ["dev", "javascript", "mdn", "web"]
+    tags: ["dev", "javascript", "mdn", "web", "starter"]
 
   - id: "devdocs_html"
     name: "HTML Reference (DevDocs, MDN)"
@@ -250,7 +286,7 @@ resources:
     kiwix_name: "devdocs_en_docker"
     upstream_url: "https://lb.download.kiwix.org/zim/devdocs/devdocs_en_docker_2026-10.zim"
     description: "Docker CLI, Dockerfile and Compose reference."
-    tags: ["dev", "docker", "devops"]
+    tags: ["dev", "docker", "devops", "starter"]
 
   - id: "devdocs_nginx"
     name: "nginx Documentation (DevDocs)"
@@ -300,7 +336,55 @@ resources:
     extract_subdir: "CheatSheetSeries-gh-pages"
     entrypoint: "index.html"
     description: "Prebuilt website of the OWASP application security cheat sheets."
-    tags: ["dev", "security", "owasp", "web"]
+    tags: ["dev", "security", "owasp", "web", "starter"]
+
+  - id: "devdocs_ansible"
+    name: "Ansible Documentation (DevDocs)"
+    category: "dev"
+    language: "en"
+    format: "zim"
+    size_mb: 27
+    source: "kiwix"
+    kiwix_name: "devdocs_en_ansible"
+    upstream_url: "https://lb.download.kiwix.org/zim/devdocs/devdocs_en_ansible_2026-10.zim"
+    description: "Ansible modules, playbooks and configuration reference."
+    tags: ["dev", "ansible", "automation", "devops", "starter"]
+
+  - id: "devdocs_bash"
+    name: "Bash Reference (DevDocs)"
+    category: "dev"
+    language: "en"
+    format: "zim"
+    size_mb: 1
+    source: "kiwix"
+    kiwix_name: "devdocs_en_bash"
+    upstream_url: "https://lb.download.kiwix.org/zim/devdocs/devdocs_en_bash_2026-10.zim"
+    description: "GNU Bash manual."
+    tags: ["dev", "bash", "shell", "linux", "starter"]
+
+  - id: "devdocs_git"
+    name: "Git Reference (DevDocs)"
+    category: "dev"
+    language: "en"
+    format: "zim"
+    size_mb: 2
+    source: "kiwix"
+    kiwix_name: "devdocs_en_git"
+    upstream_url: "https://lb.download.kiwix.org/zim/devdocs/devdocs_en_git_2026-10.zim"
+    description: "Git command reference."
+    tags: ["dev", "git", "starter"]
+
+  - id: "algorithms_erickson"
+    name: "Algorithms (Jeff Erickson)"
+    category: "dev"
+    language: "en"
+    format: "zim"
+    size_mb: 493
+    source: "kiwix"
+    kiwix_name: "jeffe.cs.illinois.edu_en_all"
+    upstream_url: "https://lb.download.kiwix.org/zim/zimit/jeffe.cs.illinois.edu_en_all_2026-09.zim"
+    description: "Jeff Erickson's open algorithms textbook and lecture notes."
+    tags: ["dev", "algorithms", "textbook", "teaching"]
   # --------------------------------------------------------------------------
   # Courses & Interactive Learning
   # --------------------------------------------------------------------------
@@ -400,6 +484,57 @@ resources:
     upstream_url: "https://studio.learningequality.org/channels/1d8f6d84618153c18c695d85074952a7"
     description: "CK-12 math and science lessons, practice and simulations. Needs Kolibri."
     tags: ["tutorials", "kolibri", "stem", "math", "science"]
+
+  - id: "phet_simulations_de"
+    name: "PhET Interaktive Simulationen (DE)"
+    category: "tutorials"
+    language: "de"
+    format: "zim"
+    size_mb: 105
+    source: "kiwix"
+    kiwix_name: "phet_de_all"
+    upstream_url: "https://lb.download.kiwix.org/zim/phet/phet_de_all_2026-08.zim"
+    description: "PhET-Simulationen für Physik, Chemie, Mathematik und Biologie auf Deutsch."
+    tags: ["tutorials", "stem", "simulations", "german", "teaching", "starter"]
+
+  - id: "klexikon_de"
+    name: "Klexikon (Kinderlexikon)"
+    category: "tutorials"
+    language: "de"
+    format: "zim"
+    size_mb: 129
+    source: "kiwix"
+    kiwix_name: "klexikon_de_all"
+    kiwix_flavour: "maxi"
+    upstream_url: "https://lb.download.kiwix.org/zim/other/klexikon_de_all_maxi_2026-08.zim"
+    description: "Deutschsprachiges Lexikon für Kinder von 5 bis 15 Jahren."
+    tags: ["tutorials", "german", "kids", "encyclopedia", "teaching", "starter"]
+
+  - id: "wikibooks_de"
+    name: "Wikibooks DE (ohne Bilder)"
+    category: "tutorials"
+    language: "de"
+    format: "zim"
+    size_mb: 2733
+    source: "kiwix"
+    kiwix_name: "wikibooks_de_all"
+    kiwix_flavour: "nopic"
+    upstream_url: "https://lb.download.kiwix.org/zim/wikibooks/wikibooks_de_all_nopic_2026-01.zim"
+    description: "Freie deutschsprachige Lehrbücher, u. a. Informatik, Mathematik, Programmierung."
+    tags: ["tutorials", "german", "textbook", "teaching"]
+
+  - id: "wikipedia_de_computer"
+    name: "Wikipedia DE: Computer"
+    category: "tutorials"
+    language: "de"
+    format: "zim"
+    size_mb: 251
+    source: "kiwix"
+    kiwix_name: "wikipedia_de_computer"
+    kiwix_flavour: "maxi"
+    upstream_url: "https://lb.download.kiwix.org/zim/wikipedia/wikipedia_de_computer_maxi_2026-10.zim"
+    description: "Informatik- und Computer-Artikel der deutschen Wikipedia."
+    tags: ["tutorials", "german", "computing", "teaching", "starter"]
   # --------------------------------------------------------------------------
   # Multilingual Encyclopedias & Dictionaries
   # --------------------------------------------------------------------------
@@ -427,7 +562,7 @@ resources:
     kiwix_name: "wikipedia_en_all"
     kiwix_flavour: "nopic"
     upstream_url: "https://lb.download.kiwix.org/zim/wikipedia/wikipedia_en_all_nopic_2026-06.zim"
-    description: "Every English Wikipedia article, text only."
+    description: "Every English Wikipedia article, text only. Very large (about 50 GB); the Best Of or mini editions suit phones better."
     tags: ["wiki", "wikipedia", "encyclopedia", "english"]
 
   - id: "wikimed_en"
@@ -441,7 +576,7 @@ resources:
     kiwix_flavour: "maxi"
     upstream_url: "https://lb.download.kiwix.org/zim/wikipedia/wikipedia_en_medicine_maxi_2026-10.zim"
     description: "Medical and health articles from English Wikipedia."
-    tags: ["wiki", "medicine", "health", "english"]
+    tags: ["wiki", "medicine", "health", "english", "starter"]
 
   - id: "wikipedia_es_top"
     name: "Wikipedia ES: Lo mejor"
@@ -559,6 +694,84 @@ resources:
     upstream_url: "https://lb.download.kiwix.org/zim/wikipedia/wikipedia_sl_all_maxi_2026-10.zim"
     description: "Complete Slovenian Wikipedia with images."
     tags: ["wiki", "wikipedia", "slovenian"]
+
+  - id: "wikipedia_en_top_nopic"
+    name: "Wikipedia EN: Best Of (no images)"
+    category: "wiki"
+    language: "en"
+    format: "zim"
+    size_mb: 2619
+    source: "kiwix"
+    kiwix_name: "wikipedia_en_top"
+    kiwix_flavour: "nopic"
+    upstream_url: "https://lb.download.kiwix.org/zim/wikipedia/wikipedia_en_top_nopic_2026-09.zim"
+    description: "Most popular English Wikipedia articles, text only; phone-sized."
+    tags: ["wiki", "wikipedia", "encyclopedia", "english", "phone", "starter"]
+
+  - id: "wikipedia_de_top"
+    name: "Wikipedia DE: Das Beste (ohne Bilder)"
+    category: "wiki"
+    language: "de"
+    format: "zim"
+    size_mb: 1219
+    source: "kiwix"
+    kiwix_name: "wikipedia_de_top"
+    kiwix_flavour: "nopic"
+    upstream_url: "https://lb.download.kiwix.org/zim/wikipedia/wikipedia_de_top_nopic_2026-10.zim"
+    description: "Die meistgelesenen Artikel der deutschen Wikipedia, nur Text."
+    tags: ["wiki", "wikipedia", "german", "phone", "starter"]
+
+  - id: "wiktionary_de_all"
+    name: "Wiktionary DE"
+    category: "wiki"
+    language: "de"
+    format: "zim"
+    size_mb: 1470
+    source: "kiwix"
+    kiwix_name: "wiktionary_de_all"
+    kiwix_flavour: "nopic"
+    upstream_url: "https://lb.download.kiwix.org/zim/wiktionary/wiktionary_de_all_nopic_2026-10.zim"
+    description: "Deutschsprachiges Wörterbuch mit Übersetzungen."
+    tags: ["wiki", "wiktionary", "dictionary", "german", "starter"]
+
+  - id: "wikivoyage_de"
+    name: "Wikivoyage DE (ohne Bilder)"
+    category: "wiki"
+    language: "de"
+    format: "zim"
+    size_mb: 208
+    source: "kiwix"
+    kiwix_name: "wikivoyage_de_all"
+    kiwix_flavour: "nopic"
+    upstream_url: "https://lb.download.kiwix.org/zim/wikivoyage/wikivoyage_de_all_nopic_2026-10.zim"
+    description: "Reise- und Wanderführer, u. a. Österreich und Alpen."
+    tags: ["wiki", "travel", "hiking", "austria", "german", "starter"]
+
+  - id: "wikiquote_de"
+    name: "Wikiquote DE"
+    category: "wiki"
+    language: "de"
+    format: "zim"
+    size_mb: 44
+    source: "kiwix"
+    kiwix_name: "wikiquote_de_all"
+    kiwix_flavour: "maxi"
+    upstream_url: "https://lb.download.kiwix.org/zim/wikiquote/wikiquote_de_all_maxi_2026-10.zim"
+    description: "Zitatsammlung auf Deutsch."
+    tags: ["wiki", "quotes", "german"]
+
+  - id: "wikipedia_en_astronomy"
+    name: "Wikipedia EN: Astronomy (no images)"
+    category: "wiki"
+    language: "en"
+    format: "zim"
+    size_mb: 385
+    source: "kiwix"
+    kiwix_name: "wikipedia_en_astronomy"
+    kiwix_flavour: "nopic"
+    upstream_url: "https://lb.download.kiwix.org/zim/wikipedia/wikipedia_en_astronomy_nopic_2026-08.zim"
+    description: "Astronomy articles from English Wikipedia, text only."
+    tags: ["wiki", "astronomy", "space", "science"]
   # --------------------------------------------------------------------------
   # Survival, Health, Repair & Engineering
   # --------------------------------------------------------------------------
@@ -598,7 +811,7 @@ resources:
     kiwix_flavour: "maxi"
     upstream_url: "https://lb.download.kiwix.org/zim/other/wikem_en_all_maxi_2026-07.zim"
     description: "Emergency medicine reference for diagnosis and treatment."
-    tags: ["survival", "medicine", "firstaid", "health"]
+    tags: ["survival", "medicine", "firstaid", "health", "starter"]
 
   - id: "appropedia_en"
     name: "Appropedia"
@@ -611,7 +824,7 @@ resources:
     kiwix_flavour: "maxi"
     upstream_url: "https://lb.download.kiwix.org/zim/other/appropedia_en_all_maxi_2026-02.zim"
     description: "Appropriate technology, sustainability and off-grid living."
-    tags: ["survival", "solarpunk", "sustainability", "diy"]
+    tags: ["survival", "solarpunk", "sustainability", "diy", "starter"]
 
   - id: "cd3wd_en"
     name: "CD3WD Development Library"
@@ -672,6 +885,114 @@ resources:
     upstream_url: "https://lb.download.kiwix.org/zim/libretexts/libretexts.org_en_math_2026-01.zim"
     description: "Open mathematics textbooks from algebra to calculus."
     tags: ["survival", "math", "textbook"]
+
+  - id: "knots_library"
+    name: "A Library of Knots"
+    category: "survival"
+    language: "en"
+    format: "zim"
+    size_mb: 27
+    source: "kiwix"
+    kiwix_name: "zimgit-knots_en"
+    upstream_url: "https://lb.download.kiwix.org/zim/other/zimgit-knots_en_2024-08.zim"
+    description: "Illustrated knots for camping, climbing, sailing and rescue."
+    tags: ["survival", "knots", "outdoors", "camping", "starter"]
+
+  - id: "water_treatment_library"
+    name: "Water Treatment Library"
+    category: "survival"
+    language: "en"
+    format: "zim"
+    size_mb: 20
+    source: "kiwix"
+    kiwix_name: "zimgit-water_en"
+    upstream_url: "https://lb.download.kiwix.org/zim/other/zimgit-water_en_2024-08.zim"
+    description: "Manuals on finding, filtering and disinfecting water."
+    tags: ["survival", "water", "outdoors", "starter"]
+
+  - id: "medical_library"
+    name: "Medical Library (zimgit)"
+    category: "survival"
+    language: "en"
+    format: "zim"
+    size_mb: 67
+    source: "kiwix"
+    kiwix_name: "zimgit-medicine_en"
+    upstream_url: "https://lb.download.kiwix.org/zim/other/zimgit-medicine_en_2024-08.zim"
+    description: "Field medicine and first-aid manuals for low-resource settings."
+    tags: ["survival", "medicine", "firstaid", "starter"]
+
+  - id: "food_preparation_library"
+    name: "Food for Preppers"
+    category: "survival"
+    language: "en"
+    format: "zim"
+    size_mb: 94
+    source: "kiwix"
+    kiwix_name: "zimgit-food-preparation_en"
+    upstream_url: "https://lb.download.kiwix.org/zim/other/zimgit-food-preparation_en_2025-04.zim"
+    description: "Food preservation, storage and preparation manuals."
+    tags: ["survival", "food", "preservation"]
+
+  - id: "post_disaster_library"
+    name: "Post Disaster Resource Library"
+    category: "survival"
+    language: "en"
+    format: "zim"
+    size_mb: 615
+    source: "kiwix"
+    kiwix_name: "zimgit-post-disaster_en"
+    upstream_url: "https://lb.download.kiwix.org/zim/other/zimgit-post-disaster_en_2024-05.zim"
+    description: "Shelter, sanitation, energy and rebuilding manuals."
+    tags: ["survival", "disaster", "shelter"]
+
+  - id: "lowtech_magazine"
+    name: "Low-Tech Magazine (Solar Powered)"
+    category: "survival"
+    language: "en"
+    format: "zim"
+    size_mb: 669
+    source: "kiwix"
+    kiwix_name: "solar.lowtechmagazine.com_mul_all"
+    upstream_url: "https://lb.download.kiwix.org/zim/zimit/solar.lowtechmagazine.com_mul_all_2025-01.zim"
+    description: "Low-tech and sustainable technology articles from the solar-powered website."
+    tags: ["survival", "solarpunk", "sustainability", "energy", "starter"]
+
+  - id: "outdoors_qna"
+    name: "The Great Outdoors Q&A"
+    category: "survival"
+    language: "en"
+    format: "zim"
+    size_mb: 136
+    source: "kiwix"
+    kiwix_name: "outdoors.stackexchange.com_en_all"
+    upstream_url: "https://lb.download.kiwix.org/zim/stack_exchange/outdoors.stackexchange.com_en_all_2026-10.zim"
+    description: "Hiking, camping, navigation and wilderness safety Q&A."
+    tags: ["survival", "outdoors", "hiking", "camping", "starter"]
+
+  - id: "fitness_qna"
+    name: "Physical Fitness Q&A"
+    category: "survival"
+    language: "en"
+    format: "zim"
+    size_mb: 77
+    source: "kiwix"
+    kiwix_name: "fitness.stackexchange.com_en_all"
+    upstream_url: "https://lb.download.kiwix.org/zim/stack_exchange/fitness.stackexchange.com_en_all_2026-10.zim"
+    description: "Strength training, running and endurance Q&A."
+    tags: ["survival", "fitness", "running", "training", "starter"]
+
+  - id: "sustainability_qna"
+    name: "Sustainable Living Q&A"
+    category: "survival"
+    language: "en"
+    format: "zim"
+    size_mb: 27
+    source: "kiwix"
+    kiwix_name: "sustainability.stackexchange.com_en_all"
+    upstream_url: "https://lb.download.kiwix.org/zim/stack_exchange/sustainability.stackexchange.com_en_all_2026-10.zim"
+    description: "Sustainable living and energy Q&A."
+    tags: ["survival", "solarpunk", "sustainability"]
   # --------------------------------------------------------------------------
   # Offline Maps
   # --------------------------------------------------------------------------
@@ -698,6 +1019,18 @@ resources:
     upstream_url: "https://lb.download.kiwix.org/zim/maps/maps_en_austria_2026-06.zim"
     description: "Browsable OpenStreetMap map of Austria inside Kiwix."
     tags: ["maps", "osm", "austria"]
+
+  - id: "openandromaps_austria"
+    name: "Austria Hiking Map (OpenAndroMaps)"
+    category: "maps"
+    language: "en"
+    format: "zip"
+    size_mb: 1488
+    source: "url"
+    upstream_url: "https://ftp.gwdg.de/pub/misc/openstreetmap/openandromaps/mapsV5/europe/Austria.zip"
+    entrypoint: "Austria_oam.osm.map"
+    description: "Mapsforge map tuned for hiking and cycling, with trails and contour lines; for Locus Map and OruxMaps."
+    tags: ["maps", "osm", "austria", "hiking", "navigation", "starter"]
   # --------------------------------------------------------------------------
   # Q&A Archives
   # --------------------------------------------------------------------------
@@ -724,7 +1057,7 @@ resources:
     kiwix_name: "unix.stackexchange.com_en_all"
     upstream_url: "https://lb.download.kiwix.org/zim/stack_exchange/unix.stackexchange.com_en_all_2026-10.zim"
     description: "Unix and Linux administration Q&A."
-    tags: ["qna", "linux", "unix", "admin"]
+    tags: ["qna", "linux", "unix", "admin", "starter"]
 
   - id: "askubuntu_stackexchange"
     name: "Ask Ubuntu"
@@ -737,8 +1070,152 @@ resources:
     upstream_url: "https://lb.download.kiwix.org/zim/stack_exchange/askubuntu.com_en_all_2026-10.zim"
     description: "Ubuntu and Debian-family Linux Q&A."
     tags: ["qna", "linux", "ubuntu"]
+
+  - id: "security_stackexchange"
+    name: "Information Security Stack Exchange"
+    category: "qna"
+    language: "en"
+    format: "zim"
+    size_mb: 420
+    source: "kiwix"
+    kiwix_name: "security.stackexchange.com_en_all"
+    upstream_url: "https://lb.download.kiwix.org/zim/stack_exchange/security.stackexchange.com_en_all_2026-10.zim"
+    description: "Infosec Q&A: threat modeling, crypto, web and network security."
+    tags: ["qna", "security", "infosec", "starter"]
+
+  - id: "crypto_stackexchange"
+    name: "Cryptography Stack Exchange"
+    category: "qna"
+    language: "en"
+    format: "zim"
+    size_mb: 178
+    source: "kiwix"
+    kiwix_name: "crypto.stackexchange.com_en_all"
+    upstream_url: "https://lb.download.kiwix.org/zim/stack_exchange/crypto.stackexchange.com_en_all_2026-10.zim"
+    description: "Cryptography Q&A."
+    tags: ["qna", "security", "cryptography", "starter"]
+
+  - id: "reverseengineering_stackexchange"
+    name: "Reverse Engineering Stack Exchange"
+    category: "qna"
+    language: "en"
+    format: "zim"
+    size_mb: 110
+    source: "kiwix"
+    kiwix_name: "reverseengineering.stackexchange.com_en_all"
+    upstream_url: "https://lb.download.kiwix.org/zim/stack_exchange/reverseengineering.stackexchange.com_en_all_2026-10.zim"
+    description: "Reverse engineering and binary analysis Q&A."
+    tags: ["qna", "security", "reversing"]
+
+  - id: "networkengineering_stackexchange"
+    name: "Network Engineering Stack Exchange"
+    category: "qna"
+    language: "en"
+    format: "zim"
+    size_mb: 125
+    source: "kiwix"
+    kiwix_name: "networkengineering.stackexchange.com_en_all"
+    upstream_url: "https://lb.download.kiwix.org/zim/stack_exchange/networkengineering.stackexchange.com_en_all_2026-10.zim"
+    description: "Routing, switching and network design Q&A."
+    tags: ["qna", "networking"]
+
+  - id: "cseducators_stackexchange"
+    name: "Computer Science Educators Stack Exchange"
+    category: "qna"
+    language: "en"
+    format: "zim"
+    size_mb: 17
+    source: "kiwix"
+    kiwix_name: "cseducators.stackexchange.com_en_all"
+    upstream_url: "https://lb.download.kiwix.org/zim/stack_exchange/cseducators.stackexchange.com_en_all_2026-10.zim"
+    description: "Teaching computer science Q&A."
+    tags: ["qna", "teaching", "computing", "starter"]
+
+  - id: "astronomy_stackexchange"
+    name: "Astronomy Stack Exchange"
+    category: "qna"
+    language: "en"
+    format: "zim"
+    size_mb: 188
+    source: "kiwix"
+    kiwix_name: "astronomy.stackexchange.com_en_all"
+    upstream_url: "https://lb.download.kiwix.org/zim/stack_exchange/astronomy.stackexchange.com_en_all_2026-10.zim"
+    description: "Astronomy and astrophysics Q&A."
+    tags: ["qna", "astronomy", "science", "starter"]
+
+  - id: "space_stackexchange"
+    name: "Space Exploration Stack Exchange"
+    category: "qna"
+    language: "en"
+    format: "zim"
+    size_mb: 382
+    source: "kiwix"
+    kiwix_name: "space.stackexchange.com_en_all"
+    upstream_url: "https://lb.download.kiwix.org/zim/stack_exchange/space.stackexchange.com_en_all_2026-10.zim"
+    description: "Spaceflight and space exploration Q&A."
+    tags: ["qna", "space", "science"]
+
+  - id: "philosophy_stackexchange"
+    name: "Philosophy Stack Exchange"
+    category: "qna"
+    language: "en"
+    format: "zim"
+    size_mb: 209
+    source: "kiwix"
+    kiwix_name: "philosophy.stackexchange.com_en_all"
+    upstream_url: "https://lb.download.kiwix.org/zim/stack_exchange/philosophy.stackexchange.com_en_all_2026-10.zim"
+    description: "Philosophy Q&A, including stoicism and ethics."
+    tags: ["qna", "philosophy", "starter"]
+
+  - id: "retrocomputing_stackexchange"
+    name: "Retrocomputing Stack Exchange"
+    category: "qna"
+    language: "en"
+    format: "zim"
+    size_mb: 120
+    source: "kiwix"
+    kiwix_name: "retrocomputing.stackexchange.com_en_all"
+    upstream_url: "https://lb.download.kiwix.org/zim/stack_exchange/retrocomputing.stackexchange.com_en_all_2026-10.zim"
+    description: "Vintage computers and hacker history Q&A."
+    tags: ["qna", "retro", "computing", "hacker"]
+
+  - id: "anime_stackexchange"
+    name: "Anime & Manga Stack Exchange"
+    category: "qna"
+    language: "en"
+    format: "zim"
+    size_mb: 229
+    source: "kiwix"
+    kiwix_name: "anime.stackexchange.com_en_all"
+    upstream_url: "https://lb.download.kiwix.org/zim/stack_exchange/anime.stackexchange.com_en_all_2026-10.zim"
+    description: "Anime and manga Q&A."
+    tags: ["qna", "anime", "manga"]
+
+  - id: "cooking_stackexchange"
+    name: "Seasoned Advice (Cooking) Stack Exchange"
+    category: "qna"
+    language: "en"
+    format: "zim"
+    size_mb: 228
+    source: "kiwix"
+    kiwix_name: "cooking.stackexchange.com_en_all"
+    upstream_url: "https://lb.download.kiwix.org/zim/stack_exchange/cooking.stackexchange.com_en_all_2026-10.zim"
+    description: "Cooking techniques and food science Q&A."
+    tags: ["qna", "cooking", "food"]
+
+  - id: "vegetarianism_stackexchange"
+    name: "Veganism & Vegetarianism Stack Exchange"
+    category: "qna"
+    language: "en"
+    format: "zim"
+    size_mb: 10
+    source: "kiwix"
+    kiwix_name: "vegetarianism.stackexchange.com_en_all"
+    upstream_url: "https://lb.download.kiwix.org/zim/stack_exchange/vegetarianism.stackexchange.com_en_all_2026-10.zim"
+    description: "Vegan and vegetarian nutrition and cooking Q&A."
+    tags: ["qna", "vegan", "food", "nutrition", "starter"]
   # --------------------------------------------------------------------------
-  # Books & Comics
+  # Books, Comics & Interactive Fiction
   # --------------------------------------------------------------------------
 
   - id: "storyweaver_books"
@@ -788,7 +1265,7 @@ resources:
     kiwix_name: "xkcd.com_en_all"
     upstream_url: "https://lb.download.kiwix.org/zim/zimit/xkcd.com_en_all_2026-08.zim"
     description: "The complete xkcd webcomic."
-    tags: ["fun", "comics", "xkcd"]
+    tags: ["fun", "comics", "xkcd", "starter"]
 
   - id: "smbc_comics"
     name: "SMBC Comics"
@@ -801,6 +1278,194 @@ resources:
     upstream_url: "https://lb.download.kiwix.org/zim/zimit/smbc-comics.com_en_all_2026-08.zim"
     description: "Saturday Morning Breakfast Cereal webcomic pack."
     tags: ["fun", "comics", "smbc"]
+
+  - id: "public_domain_recipes"
+    name: "Public Domain Recipes"
+    category: "fun"
+    language: "en"
+    format: "zim"
+    size_mb: 17
+    source: "kiwix"
+    kiwix_name: "publicdomainrecipes.com_en_all"
+    upstream_url: "https://lb.download.kiwix.org/zim/zimit/publicdomainrecipes.com_en_all_2026-08.zim"
+    description: "Open recipe collection, many vegetarian and vegan dishes."
+    tags: ["fun", "food", "recipes", "vegan", "starter"]
+
+  - id: "jargon_file"
+    name: "The Jargon File 4.2.2"
+    category: "fun"
+    language: "en"
+    format: "epub"
+    size_mb: 1
+    source: "url"
+    upstream_url: "https://www.gutenberg.org/cache/epub/3008/pg3008-images-3.epub"
+    description: "The hacker culture lexicon (Project Gutenberg edition)."
+    tags: ["fun", "hacker", "culture", "book", "starter"]
+
+  - id: "stoic_meditations"
+    name: "Marcus Aurelius: Meditations"
+    category: "fun"
+    language: "en"
+    format: "epub"
+    size_mb: 1
+    source: "url"
+    upstream_url: "https://standardebooks.org/ebooks/marcus-aurelius/meditations/george-long/downloads/marcus-aurelius_meditations_george-long.epub?source=download"
+    description: "Standard Ebooks edition, translated by George Long."
+    tags: ["fun", "book", "philosophy", "stoicism", "starter"]
+
+  - id: "stoic_epictetus"
+    name: "Epictetus: Short Works (Enchiridion, Discourses)"
+    category: "fun"
+    language: "en"
+    format: "epub"
+    size_mb: 1
+    source: "url"
+    upstream_url: "https://standardebooks.org/ebooks/epictetus/short-works/george-long/downloads/epictetus_short-works_george-long.epub?source=download"
+    description: "Standard Ebooks edition, translated by George Long."
+    tags: ["fun", "book", "philosophy", "stoicism", "starter"]
+
+  - id: "stoic_seneca_dialogues"
+    name: "Seneca: Dialogues"
+    category: "fun"
+    language: "en"
+    format: "epub"
+    size_mb: 2
+    source: "url"
+    upstream_url: "https://standardebooks.org/ebooks/seneca/dialogues/aubrey-stewart/downloads/seneca_dialogues_aubrey-stewart.epub?source=download"
+    description: "Standard Ebooks edition, translated by Aubrey Stewart."
+    tags: ["fun", "book", "philosophy", "stoicism"]
+
+  - id: "stoic_seneca_letters"
+    name: "Seneca: Moral Letters to Lucilius"
+    category: "fun"
+    language: "en"
+    format: "epub"
+    size_mb: 2
+    source: "url"
+    upstream_url: "https://standardebooks.org/ebooks/seneca/moral-letters-to-lucilius/richard-m-gummere/downloads/seneca_moral-letters-to-lucilius_richard-m-gummere.epub?source=download"
+    description: "Standard Ebooks edition, translated by Richard M. Gummere."
+    tags: ["fun", "book", "philosophy", "stoicism", "starter"]
+
+  - id: "scifi_rur"
+    name: "Karel Čapek: R.U.R."
+    category: "fun"
+    language: "en"
+    format: "epub"
+    size_mb: 1
+    source: "url"
+    upstream_url: "https://standardebooks.org/ebooks/karel-capek/r-u-r/paul-selver_nigel-playfair/downloads/karel-capek_r-u-r_paul-selver_nigel-playfair.epub?source=download"
+    description: "The 1920 play that coined the word robot."
+    tags: ["fun", "book", "scifi"]
+
+  - id: "scifi_we"
+    name: "Yevgeny Zamyatin: We"
+    category: "fun"
+    language: "en"
+    format: "epub"
+    size_mb: 1
+    source: "url"
+    upstream_url: "https://standardebooks.org/ebooks/yevgeny-zamyatin/we/gregory-zilboorg/downloads/yevgeny-zamyatin_we_gregory-zilboorg.epub?source=download"
+    description: "The dystopia that inspired Nineteen Eighty-Four."
+    tags: ["fun", "book", "scifi", "dystopia", "starter"]
+
+  - id: "scifi_time_machine"
+    name: "H. G. Wells: The Time Machine"
+    category: "fun"
+    language: "en"
+    format: "epub"
+    size_mb: 1
+    source: "url"
+    upstream_url: "https://standardebooks.org/ebooks/h-g-wells/the-time-machine/downloads/h-g-wells_the-time-machine.epub?source=download"
+    description: "Standard Ebooks edition."
+    tags: ["fun", "book", "scifi"]
+
+  - id: "forster_short_fiction"
+    name: "E. M. Forster: Short Fiction (incl. The Machine Stops)"
+    category: "fun"
+    language: "en"
+    format: "epub"
+    size_mb: 1
+    source: "url"
+    upstream_url: "https://standardebooks.org/ebooks/e-m-forster/short-fiction/downloads/e-m-forster_short-fiction.epub?source=download"
+    description: "Includes The Machine Stops, the 1909 story of a networked, screen-bound humanity."
+    tags: ["fun", "book", "scifi", "dystopia", "starter"]
+
+  - id: "gothic_frankenstein"
+    name: "Mary Shelley: Frankenstein"
+    category: "fun"
+    language: "en"
+    format: "epub"
+    size_mb: 1
+    source: "url"
+    upstream_url: "https://standardebooks.org/ebooks/mary-shelley/frankenstein/downloads/mary-shelley_frankenstein.epub?source=download"
+    description: "Standard Ebooks edition."
+    tags: ["fun", "book", "gothic", "scifi"]
+
+  - id: "gothic_dracula"
+    name: "Bram Stoker: Dracula"
+    category: "fun"
+    language: "en"
+    format: "epub"
+    size_mb: 1
+    source: "url"
+    upstream_url: "https://standardebooks.org/ebooks/bram-stoker/dracula/downloads/bram-stoker_dracula.epub?source=download"
+    description: "Standard Ebooks edition."
+    tags: ["fun", "book", "gothic"]
+
+  - id: "if_anchorhead"
+    name: "Anchorhead (interactive fiction)"
+    category: "fun"
+    language: "en"
+    format: "z8"
+    size_mb: 1
+    source: "url"
+    upstream_url: "https://www.ifarchive.org/if-archive/games/zcode/anchor.z8"
+    description: "Lovecraftian gothic horror text adventure (1998 freeware release). Play with frotz in Termux."
+    tags: ["fun", "interactive-fiction", "gothic", "horror", "terminal", "starter"]
+
+  - id: "if_spider_and_web"
+    name: "Spider and Web (interactive fiction)"
+    category: "fun"
+    language: "en"
+    format: "z5"
+    size_mb: 1
+    source: "url"
+    upstream_url: "https://www.ifarchive.org/if-archive/games/zcode/Tangle.z5"
+    description: "Andrew Plotkin's sci-fi espionage interrogation thriller. Play with frotz in Termux."
+    tags: ["fun", "interactive-fiction", "scifi", "espionage", "terminal", "starter"]
+
+  - id: "if_vespers"
+    name: "Vespers (interactive fiction)"
+    category: "fun"
+    language: "en"
+    format: "z8"
+    size_mb: 1
+    source: "url"
+    upstream_url: "https://www.ifarchive.org/if-archive/games/zcode/vespers.z8"
+    description: "Gothic horror in a plague-struck medieval monastery. Play with frotz in Termux."
+    tags: ["fun", "interactive-fiction", "gothic", "horror", "terminal", "starter"]
+
+  - id: "if_shade"
+    name: "Shade (interactive fiction)"
+    category: "fun"
+    language: "en"
+    format: "z5"
+    size_mb: 1
+    source: "url"
+    upstream_url: "https://www.ifarchive.org/if-archive/games/zcode/shade.z5"
+    description: "Andrew Plotkin's one-room psychological piece. Play with frotz in Termux."
+    tags: ["fun", "interactive-fiction", "terminal"]
+
+  - id: "if_photopia"
+    name: "Photopia (interactive fiction)"
+    category: "fun"
+    language: "en"
+    format: "z5"
+    size_mb: 1
+    source: "url"
+    upstream_url: "https://www.ifarchive.org/if-archive/games/zcode/photopia.z5"
+    description: "Adam Cadre's landmark story-driven piece with a sci-fi thread. Play with frotz in Termux."
+    tags: ["fun", "interactive-fiction", "scifi", "terminal"]
   # --------------------------------------------------------------------------
   # Prebuilt Offline Web Apps
   # --------------------------------------------------------------------------
@@ -817,7 +1482,7 @@ resources:
     upstream_url: "https://github.com/gchq/CyberChef/releases/download/v11.5.0/CyberChef_8cd426dd4f40f1423912d5fad91b578a86a65112.zip"
     entrypoint: "CyberChef_*.html"
     description: "The Cyber Swiss Army Knife: encoding, encryption, compression and data analysis."
-    tags: ["tools", "security", "crypto", "encoding"]
+    tags: ["tools", "security", "crypto", "encoding", "starter"]
 
   - id: "it_tools_suite"
     name: "IT-Tools"
@@ -833,7 +1498,7 @@ resources:
     entrypoint: "index.html"
     serve_root: true
     description: "Developer utilities: subnet calculator, chmod, cron, JWT, JSON and YAML converters."
-    tags: ["tools", "dev", "networking"]
+    tags: ["tools", "dev", "networking", "starter"]
 
   - id: "drawio_offline_suite"
     name: "draw.io"
@@ -847,7 +1512,7 @@ resources:
     upstream_url: "https://github.com/jgraph/drawio/releases/download/v32.5.5/draw.war"
     entrypoint: "index.html?offline=1"
     description: "Diagram editor: network topologies, architecture, UML, flowcharts."
-    tags: ["tools", "diagrams", "architecture"]
+    tags: ["tools", "diagrams", "architecture", "starter"]
 
   - id: "circuitjs_simulator"
     name: "CircuitJS1 Circuit Simulator"
@@ -860,7 +1525,7 @@ resources:
     extract_subdir: "circuitjs1/resources/app/war"
     entrypoint: "circuitjs.html"
     description: "Falstad real-time electronic circuit simulator (web build from the official offline bundle)."
-    tags: ["tools", "electronics", "simulation"]
+    tags: ["tools", "electronics", "simulation", "starter"]
 
   - id: "sqlime_sqlite_studio"
     name: "SQLime SQLite Playground"
@@ -873,7 +1538,7 @@ resources:
     extract_subdir: "sqlime-main"
     entrypoint: "index.html"
     description: "In-browser SQLite (WebAssembly) query editor; the repository is the deployable static site."
-    tags: ["tools", "sqlite", "database", "wasm"]
+    tags: ["tools", "sqlite", "database", "wasm", "starter"]
 
   - id: "geogebra_math_apps"
     name: "GeoGebra Math Apps"
@@ -885,4 +1550,129 @@ resources:
     upstream_url: "https://download.geogebra.org/package/geogebra-math-apps-bundle"
     entrypoint: "GeoGebra/HTML5/5.0/GeoGebra.html"
     description: "Official offline GeoGebra bundle: graphing, geometry, CAS. Free for non-commercial use."
-    tags: ["tools", "math", "graphing", "geometry"]
+    tags: ["tools", "math", "graphing", "geometry", "starter"]
+
+  - id: "excalidraw_whiteboard"
+    name: "Excalidraw"
+    category: "tools"
+    language: "en"
+    format: "tar"
+    size_mb: 22
+    source: "oci"
+    oci_image: "excalidraw/excalidraw"
+    oci_tag: "latest"
+    upstream_url: "https://hub.docker.com/r/excalidraw/excalidraw"
+    extract_subdir: "usr/share/nginx/html"
+    entrypoint: "index.html"
+    serve_root: true
+    description: "Hand-drawn style whiteboard for architecture sketches and threat models (official Docker image build; fonts are bundled, its analytics script only loads when online)."
+    tags: ["tools", "whiteboard", "diagrams", "architecture", "starter"]
+
+  - id: "drawnix_whiteboard"
+    name: "Drawnix"
+    category: "tools"
+    language: "en"
+    format: "tar"
+    size_mb: 2
+    source: "oci"
+    oci_image: "pubuzhixing/drawnix"
+    oci_tag: "latest"
+    upstream_url: "https://hub.docker.com/r/pubuzhixing/drawnix"
+    extract_subdir: "home/static"
+    entrypoint: "index.html"
+    serve_root: true
+    description: "Whiteboard with mind maps, flowcharts and freehand drawing (official Docker image build). Opens in Chinese; switch the language in its menu."
+    tags: ["tools", "whiteboard", "mindmap", "diagrams"]
+
+  - id: "periodic_table_cyberpunk"
+    name: "Future-Style Periodic Table"
+    category: "tools"
+    language: "en"
+    format: "tar"
+    size_mb: 1
+    source: "url"
+    upstream_url: "https://github.com/SeanWong17/Future-Style-Periodic-Table/archive/refs/heads/gh-pages.tar.gz"
+    extract_subdir: "Future-Style-Periodic-Table-gh-pages"
+    entrypoint: "index.html"
+    description: "Cyberpunk-styled interactive periodic table with 3D electron configurations (prebuilt gh-pages site). Opens in Chinese; tap EN."
+    tags: ["tools", "chemistry", "science", "teaching", "starter"]
+
+  - id: "astronomy_engine_demos"
+    name: "Astronomy Engine: Sun & Moon Calculators"
+    category: "tools"
+    language: "en"
+    format: "tar"
+    size_mb: 29
+    source: "url"
+    upstream_url: "https://github.com/cosinekitty/astronomy/archive/refs/tags/v2.1.19.tar.gz"
+    extract_subdir: "astronomy-2.1.19/demo/browser"
+    entrypoint: "riseset.html"
+    description: "Offline sunrise/sunset, moonrise, moon phase and planet position calculators (replaces SunCalc)."
+    tags: ["tools", "astronomy", "sun", "moon", "hiking", "starter"]
+  # --------------------------------------------------------------------------
+  # Android Apps (APKs to install offline)
+  # --------------------------------------------------------------------------
+
+  - id: "kiwix_android_apk"
+    name: "Kiwix for Android (APK, arm64)"
+    category: "apps"
+    language: "en"
+    format: "apk"
+    size_mb: 68
+    source: "github"
+    github_repo: "kiwix/kiwix-android"
+    asset_pattern: 'v.*-arm64-v8a-standalone\.apk'
+    upstream_url: "https://github.com/kiwix/kiwix-android/releases/download/v3.14.1/v3.14.1-arm64-v8a-standalone.apk"
+    description: "Reader for all .zim files; this build can scan the vault folder."
+    tags: ["apps", "android", "kiwix", "reader", "starter"]
+
+  - id: "koreader_android_apk"
+    name: "KOReader for Android (APK, arm64)"
+    category: "apps"
+    language: "en"
+    format: "apk"
+    size_mb: 29
+    source: "github"
+    github_repo: "koreader/koreader"
+    asset_pattern: 'koreader-android-arm64-.*\.apk'
+    upstream_url: "https://github.com/koreader/koreader/releases/download/v2026.07.1/koreader-android-arm64-v2026.07.1.apk"
+    description: "EPUB and PDF reader."
+    tags: ["apps", "android", "ebook", "reader", "starter"]
+
+  - id: "trail_sense_apk"
+    name: "Trail Sense (APK)"
+    category: "apps"
+    language: "en"
+    format: "apk"
+    size_mb: 13
+    source: "github"
+    github_repo: "kylecorry31/Trail-Sense"
+    asset_pattern: 'Trail-Sense-.*-release\.apk'
+    upstream_url: "https://github.com/kylecorry31/Trail-Sense/releases/download/8.2.0/Trail-Sense-8.2.0-release.apk"
+    description: "Offline hiking toolkit: sun and moon times, compass, navigation, weather from the barometer."
+    tags: ["apps", "android", "hiking", "astronomy", "outdoors", "starter"]
+
+  - id: "sky_map_apk"
+    name: "Sky Map (APK, F-Droid)"
+    category: "apps"
+    language: "en"
+    format: "apk"
+    size_mb: 22
+    source: "fdroid"
+    fdroid_package: "com.google.android.stardroid"
+    upstream_url: "https://f-droid.org/packages/com.google.android.stardroid/"
+    description: "Offline star and planet finder using the phone's sensors."
+    tags: ["apps", "android", "astronomy", "starter"]
+
+  - id: "kolibri_android_apk"
+    name: "Kolibri for Android (APK)"
+    category: "apps"
+    language: "en"
+    format: "apk"
+    size_mb: 206
+    source: "github"
+    github_repo: "learningequality/kolibri"
+    asset_pattern: 'kolibri-.*-universal\.apk'
+    upstream_url: "https://github.com/learningequality/kolibri/releases/download/v0.19.5/kolibri-0.19.5-0.1.10-official-release-universal.apk"
+    description: "Kolibri learning platform app for the Kolibri channels in the vault."
+    tags: ["apps", "android", "kolibri", "learning"]

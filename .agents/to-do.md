@@ -13,7 +13,16 @@
 - [x] Kolibri import verified with Kolibri 0.19.5 (`importchannel`/`importcontent` into the vault layout).
 - [x] `pip-audit`: no known vulnerabilities in the venv.
 
+## Sprint 7 (Epic 9: Tool Replacements, Personal Material, Starter Set)
+- [x] US9.1 Replacements for removed tools (3 pts) — PASS
+- [x] US9.2 Android apps in the vault (3 pts) — PASS
+- [x] US9.3 Personal offline material (3 pts) — PASS
+- [x] US9.4 Phone starter set (2 pts) — PASS
+- [x] 102 tests green; live sync of 19 new items incl. OpenAndroMaps (1.2 GB); offline browser check of Excalidraw, Drawnix, periodic table, sun/moon demos, IT-Tools.
+
 ## Backlog (from the 2026-10-23 review, not in Sprint 6)
+- Excalidraw's Docker build includes an analytics script (loads only when online); stripping it would mean patching upstream files.
+- Drawnix and the periodic table default to a Chinese UI.
 - Catalog generator (`.scratch/gen_catalog.py` + `catalog_spec.yaml`, local only) could move into `scripts/` so sizes can be refreshed; needs a decision on spec vs. YAML as source of truth.
 - CircuitJS1 URL is version-pinned (Falstad has no "latest" link); GitHub branch archives (OWASP, SQLime) carry no checksum.
 - Kolibri Android "import from folder" with Android scoped storage not tested on a device.

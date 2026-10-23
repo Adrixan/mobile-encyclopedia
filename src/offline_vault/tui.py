@@ -217,8 +217,12 @@ Files keep versionless names, so bookmarks survive updates:
 - **`.zim`** (all categories): wikis, DevDocs references, Q&A, courses, comics. Open in Kiwix.
 - **`.epub`** (`admin/`, `dev/`): books. Open in KOReader.
 - **`.map`** (`maps/`): Mapsforge vector maps. Open in Locus Map or OruxMaps.
-- **`tools/<id>/`**: prebuilt web apps (CyberChef, IT-Tools, draw.io, CircuitJS1, SQLime, GeoGebra).
+- **`tools/<id>/`**: prebuilt web apps (CyberChef, IT-Tools, draw.io, Excalidraw, Drawnix, CircuitJS1, SQLime, GeoGebra, periodic table, sun & moon calculators).
+- **`.z5` / `.z8`** (`fun/`): interactive fiction. Play with `frotz` in Termux.
+- **`apps/*.apk`**: Kiwix, KOReader, Trail Sense, Sky Map, Kolibri for offline installs.
 - **`tutorials/kolibri/`**: Kolibri channels (Sikana, CK-12, StoryWeaver). Needs `pip install kolibri`.
+
+**Phone starter set (about 14 GB):** search `tag:starter`, press **A**, then **S**.
 
 ---
 
@@ -229,12 +233,14 @@ Files keep versionless names, so bookmarks survive updates:
 | **`.epub`** | **KOReader** (F-Droid) | `admin/`, `dev/` |
 | **`.map`** | **Locus Map** / **OruxMaps** | `maps/` |
 | **Web apps** | Browser via `offline-vault serve` in Termux | `tools/` |
+| **`.z5` / `.z8`** | `pkg install frotz` in Termux | `fun/` |
+| **`.apk`** | File manager: install from file | `apps/` |
 | **Kolibri** | **Kolibri** app: import from folder or from a PC on Wi-Fi | `tutorials/kolibri/` |
 
 **Kiwix:** the Play Store build opens ZIMs through the file picker; the APK build can scan the vault folder.
 
 **Web apps:** run `offline-vault serve` in Termux and open `http://localhost:8000` in the browser.
-IT-Tools gets its own port (`http://localhost:8001`).
+IT-Tools, Excalidraw and Drawnix get their own ports (8001, 8002, ...), listed on the portal.
 
 ---
 
@@ -451,6 +457,7 @@ class OfflineVaultApp(App):
                 yield Button("Q&A", variant="default", id="cat_qna")
                 yield Button("Books", variant="default", id="cat_fun")
                 yield Button("Tools", variant="default", id="cat_tools")
+                yield Button("Apps", variant="default", id="cat_apps")
         yield DataTable(id="catalog_table")
         yield Footer()
 

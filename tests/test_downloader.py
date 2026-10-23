@@ -154,6 +154,9 @@ def test_check_file_signature_per_format(tmp_path):
         "zip": b"PK\x03\x04rest",
         "epub": b"PK\x03\x04rest",
         "map": b"mapsforge binary OSMrest",
+        "apk": b"PK\x03\x04rest",
+        "z5": b"\x05\x00rest",
+        "z8": b"\x08\x00rest",
     }
     for fmt, data in cases.items():
         good = tmp_path / f"good.{fmt}"

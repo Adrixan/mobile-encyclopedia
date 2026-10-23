@@ -85,3 +85,15 @@ Decisions (Peter, 2026-10-23): Kolibri items switch to ZIMs where a ZIM exists; 
 - **US8.4: Android Access Paths** (Must Have, 3 pts) — **DONE**
   1. README and in-app help document per format: Android app reading the vault folder, or Termux server plus browser.
   2. Portal links tools by entrypoint and Kolibri/Kiwix by the current host instead of `localhost`.
+
+### Epic 9: Tool Replacements, Personal Material & Phone Starter Set (2026-10-23)
+- **US9.1: Replacements for removed tools** (Must Have, 3 pts) — **DONE**
+  1. Excalidraw and Drawnix from the top layer of their official Docker Hub images (`oci` source, layer SHA-256 verified).
+  2. Ptable replaced by Future-Style Periodic Table (prebuilt gh-pages); SunCalc by Astronomy Engine browser demos plus Trail Sense APK.
+  3. All tools verified in a browser with every external host blocked.
+- **US9.2: Android apps in the vault** (Should Have, 3 pts) — **DONE**
+  1. `apps` category, `apk` format; `fdroid` source (suggested version); GitHub APKs carry digests.
+- **US9.3: Personal offline material** (Should Have, 3 pts) — **DONE**
+  1. German references and teaching material, infosec and privacy, outdoors and survival, astronomy, stoic and sci-fi EPUBs, interactive fiction (`z5`/`z8`), hiking map (OpenAndroMaps Austria).
+- **US9.4: Phone starter set** (Should Have, 2 pts) — **DONE**
+  1. 60 items tagged `starter` (about 14 GB); `list`/`sync --tag`; giants (>20 GB) must say so in their description.
