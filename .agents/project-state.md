@@ -39,4 +39,5 @@
 - **Sprint 5**: Cross-Platform Local Serving Architecture, WASM MIME types, Threading Server with Address Reuse & Intranet Portal Dashboard (Done: 5 pts)
 - **Sprint 6**: Android-first catalog v2 (69 real items: Kiwix ZIMs incl. DevDocs, prebuilt web apps, Kolibri channels), safe sync engine (manifest, signature + SHA-256 checks, safe extraction, no collateral pruning), Kolibri import, root-served apps (Done: 16 pts)
 - **Sprint 7**: Tool replacements (Excalidraw, Drawnix via `oci`; periodic table; Astronomy Engine), `apps` category with APKs (`fdroid` source), personal material (German, infosec, outdoors, stoics, IF), phone starter set (`--tag starter`, ~14 GB) (Done: 11 pts)
-- **Total Velocity Delivered**: 79 Story Points. 102 automated tests passing. Catalog: 134 items, 114 of them <= 2 GB.
+- **Sprint 8**: Catalog-defined privacy/language patches (Excalidraw, Drawnix, periodic table), localhost-only static/Kiwix/Kolibri servers (Done: 5 pts)
+- **Total Velocity Delivered**: 84 Story Points. 110 automated tests passing. Catalog: 134 items, 114 of them <= 2 GB.

@@ -30,7 +30,8 @@ Offline Vault curates, downloads, verifies, updates and serves offline copies of
   - A manifest (`<vault>/.offline-vault/manifest.json`) records URL, checksum and size: unchanged items are skipped, items with a newer upstream release are updated.
   - Files are replaced only after a verified download; web apps are extracted into a staging folder and swapped in. Nothing outside an item's own path is ever deleted.
   - Archive extraction drops symlinks, device files, absolute paths and `..` traversal, and checks free space first.
-- **Local serving for phones, tablets and PCs**: static portal and web apps, Kiwix (`kiwix-serve`), Kolibri.
+- **Local serving, localhost only**: static portal and web apps, Kiwix (`kiwix-serve`) and Kolibri listen on `127.0.0.1`; other hosts are refused, so nothing is exposed on Wi-Fi or a hotspot.
+- **Privacy patches**: catalog-defined edits applied to upstream web app builds before install (strip analytics, drop CDN font loading, set English defaults). A patch that no longer matches fails the install and keeps the previous version, so a tracker can never silently return after an update.
 
 ---
 
@@ -80,7 +81,7 @@ Only prebuilt, deployable builds are used; nothing needs a build step on the pho
 | **Future-Style Periodic Table** | `periodic_table_cyberpunk` | prebuilt `gh-pages` site (MIT) | `tools/periodic_table_cyberpunk/` |
 | **Sun & Moon Calculators** | `astronomy_engine_demos` | Astronomy Engine browser demos (MIT): rise/set, moon phase, planet positions | `tools/astronomy_engine_demos/` |
 
-Apps that only work at a site root (IT-Tools, Excalidraw, Drawnix) get ports 8001, 8002, ... in catalog order among the installed ones; `offline-vault serve` prints them and the portal links them. Notes: Drawnix and the periodic table open in Chinese (language switch in the menu, `EN` on the table); Excalidraw's bundled fonts work offline, and its built-in analytics script loads only when the device is online; the CircuitJS1 Dropbox button and the OWASP site's web fonts need internet.
+Apps that only work at a site root (IT-Tools, Excalidraw, Drawnix) get ports 8001, 8002, ... in catalog order among the installed ones; `offline-vault serve` prints them and the portal links them. Privacy and language patches (verified with internet access allowed: no outside requests at startup): Excalidraw has its Simple Analytics script and CDN font loading removed and uses its bundled fonts; Drawnix has its Umami analytics removed and starts in English; the periodic table starts in English (its element photos still load from the web when online). Still needing internet: the CircuitJS1 Dropbox button and the OWASP site's web fonts.
 
 ---
 
@@ -95,14 +96,14 @@ Grant Termux storage access once (`termux-setup-storage`); the default vault is 
 | Vector maps | `.map` | **Locus Map** ([Play Store](https://play.google.com/store/apps/details?id=menion.android.locus)) or **OruxMaps** ([oruxmaps.com](https://www.oruxmaps.com/)): import as Mapsforge offline map | `maps/` |
 | Web apps and extracted sites | folder | Termux `offline-vault serve`, then open `http://localhost:8000` in the browser | `tools/`, `dev/owasp_cheat_sheet_series/` |
 | Interactive fiction | `.z5` / `.z8` | Termux: `pkg install frotz`, then `frotz <vault>/fun/if_anchorhead.z8`; or any Z-machine interpreter app | `fun/` |
-| Android apps | `.apk` | Open the file in a file manager and allow installs from it; or download it from the portal on another phone | `apps/` |
-| Kolibri channels | `KOLIBRI_DATA` | **Kolibri** app ([Play Store](https://play.google.com/store/apps/details?id=org.learningequality.Kolibri), [APK](https://github.com/learningequality/kolibri/releases/latest)): import channels from the folder or from a PC on the same Wi-Fi; or Termux `offline-vault serve --kolibri` | `tutorials/kolibri/` |
+| Android apps | `.apk` | Open the file in a file manager and allow installs from it | `apps/` |
+| Kolibri channels | `KOLIBRI_DATA` | **Kolibri** app ([Play Store](https://play.google.com/store/apps/details?id=org.learningequality.Kolibri), [APK](https://github.com/learningequality/kolibri/releases/latest)): import channels from the vault folder; or Termux `offline-vault serve --kolibri` | `tutorials/kolibri/` |
 
 **Kiwix:** the Play Store build opens ZIMs through the system file picker (Android storage rules); the APK from download.kiwix.org can scan the vault folder directly.
 
 **Kolibri:** syncing a Kolibri item needs the `kolibri` command (`pip install kolibri`, also inside Termux). Content is written in the layout Kolibri's "import from drive" expects, so the same folder can be imported by the Kolibri app or by another device. Kolibri's own database stays in `~/.local/share/offline-vault/kolibri-home` because SQLite is unreliable on Android shared storage.
 
-**Apps in the vault (`apps/`):** Kiwix (arm64), KOReader (arm64), Trail Sense (offline sun and moon times, compass, navigation, barometer), Sky Map (F-Droid build) and Kolibri. Keeping them in the vault lets you set up a phone, or a friend's phone over the hotspot portal, without internet. Termux itself is not included: its GitHub builds are debug-signed and cannot be mixed with the F-Droid build.
+**Apps in the vault (`apps/`):** Kiwix (arm64), KOReader (arm64), Trail Sense (offline sun and moon times, compass, navigation, barometer), Sky Map (F-Droid build) and Kolibri. Keeping them in the vault lets you set up a phone without internet (copy the APK over USB or an SD card for another device). Termux itself is not included: its GitHub builds are debug-signed and cannot be mixed with the F-Droid build.
 
 **Why no Kapeli docsets:** Dash/Zeal docsets only run on Android through Zeal inside a Termux:X11 desktop. The DevDocs ZIMs carry the same documentation, are 1 to 14 MB each and open in Kiwix.
 
@@ -189,7 +190,8 @@ offline-vault sync --force --id cyberchef_suite # re-download even if current
 offline-vault serve --static                    # portal + web apps on port 8000 (root-only apps on 8001+)
 offline-vault serve --kiwix                     # kiwix-serve on port 8000
 offline-vault serve --kolibri                   # Kolibri on port 8080
-offline-vault serve --host 127.0.0.1 --port 9000  # bind locally only, custom port
+offline-vault serve --port 9000                # custom port; servers always bind to localhost
+                                                # (--host accepts only 127.0.0.1, ::1 or localhost)
 ```
 
 `sync` exits non-zero if any item fails; each failure is listed with its reason. One failing item never stops the rest.

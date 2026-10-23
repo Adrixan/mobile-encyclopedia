@@ -97,3 +97,12 @@ Decisions (Peter, 2026-10-23): Kolibri items switch to ZIMs where a ZIM exists; 
   1. German references and teaching material, infosec and privacy, outdoors and survival, astronomy, stoic and sci-fi EPUBs, interactive fiction (`z5`/`z8`), hiking map (OpenAndroMaps Austria).
 - **US9.4: Phone starter set** (Should Have, 2 pts) — **DONE**
   1. 60 items tagged `starter` (about 14 GB); `list`/`sync --tag`; giants (>20 GB) must say so in their description.
+
+### Epic 10: Privacy Patches, English Defaults, Localhost-Only Serving (2026-10-23)
+- **US10.1: Catalog-defined patches** (Must Have, 3 pts) — **DONE**
+  1. `patches` (file glob, regex, replacement) applied in staging before the swap; a non-matching patch fails the install and keeps the previous version.
+  2. Patch fingerprint in the manifest: changed patches trigger a reinstall.
+  3. Excalidraw: Simple Analytics script, CDN asset path, CDN font preloads and CSS CDN font sources removed. Drawnix: Umami removed, English seeded. Periodic table: English initial state.
+- **US10.2: Localhost-only servers** (Must Have, 2 pts) — **DONE**
+  1. Static portal, root-app ports, kiwix-serve (`--address`) and Kolibri (`KOLIBRI_LISTEN_ADDRESS`) bind to loopback; non-loopback `--host` is rejected (exit 2).
+  2. LAN and hotspot sharing removed from docs and portal.

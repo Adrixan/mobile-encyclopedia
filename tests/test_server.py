@@ -14,7 +14,6 @@ from offline_vault.server import (
     find_kiwix_serve_executable,
     find_kolibri_executable,
     generate_portal_dashboard,
-    get_lan_ip,
     init_mimetypes,
 )
 
@@ -26,12 +25,6 @@ def test_init_mimetypes():
     assert mimetypes.guess_type("image.svg")[0] == "image/svg+xml"
     assert mimetypes.guess_type("book.epub")[0] == "application/epub+zip"
     assert mimetypes.guess_type("wiki.zim")[0] == "application/x-zim"
-
-
-def test_get_lan_ip():
-    ip = get_lan_ip()
-    assert isinstance(ip, str)
-    assert len(ip.split(".")) == 4 or ip == "127.0.0.1"
 
 
 def test_generate_portal_dashboard(tmp_path):
@@ -152,3 +145,39 @@ def test_spa_handler_serves_index_for_client_routes(tmp_path):
     finally:
         server.shutdown()
         server.server_close()
+
+
+def test_servers_refuse_non_loopback_hosts(tmp_path, capsys):
+    from offline_vault.server import is_loopback_host, run_static_server
+
+    assert is_loopback_host("127.0.0.1") and is_loopback_host("localhost") and is_loopback_host("::1")
+    assert not is_loopback_host("0.0.0.0") and not is_loopback_host("192.168.1.10")
+    assert run_static_server(tmp_path, host="0.0.0.0", port=0) == 1
+    assert "localhost only" in capsys.readouterr().out
+
+
+def test_kiwix_and_kolibri_bind_to_loopback(tmp_path, monkeypatch):
+    from offline_vault import server
+
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "fresh-data"))
+    calls = []
+    monkeypatch.setattr(server, "find_kiwix_serve_executable", lambda: "/usr/bin/kiwix-serve")
+    monkeypatch.setattr(server, "find_kolibri_executable", lambda: "/usr/bin/kolibri")
+    monkeypatch.setattr(server, "ensure_kiwix_library", lambda v: None)
+    monkeypatch.setattr(server.subprocess, "run", lambda cmd, **kw: calls.append((cmd, kw.get("env"))))
+    (tmp_path / "a.zim").write_bytes(b"ZIM\x04")
+    assert server.run_kiwix_server(tmp_path, port=8000) == 0
+    assert "--address=127.0.0.1" in calls[-1][0]
+    assert server.run_kolibri_server(tmp_path, port=8080) == 0
+    assert calls[-1][1]["KOLIBRI_LISTEN_ADDRESS"] == "127.0.0.1"
+    # Kolibri refuses to start when the parent of KOLIBRI_HOME is missing (fresh device)
+    assert Path(calls[-1][1]["KOLIBRI_HOME"]).is_dir()
+
+
+def test_cli_serve_defaults_to_localhost_and_rejects_lan(tmp_path):
+    with patch("offline_vault.server.run_static_server", return_value=0) as mock_static:
+        from offline_vault.cli import run_cli
+
+        assert run_cli(["serve", "--static", "--vault-dir", str(tmp_path)]) == 0
+        assert mock_static.call_args.kwargs["host"] == "127.0.0.1"
+        assert run_cli(["serve", "--static", "--host", "0.0.0.0", "--vault-dir", str(tmp_path)]) == 2

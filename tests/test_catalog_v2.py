@@ -126,3 +126,16 @@ def test_catalog_items_fit_on_a_phone_or_say_so():
     for item in catalog.items:
         if item.size_mb > 20000:
             assert "large" in item.description.lower(), f"{item.id} is {item.size_mb} MB without a size warning"
+
+
+def test_patches_are_validated():
+    base = dict(format="zip", category="tools", entrypoint="index.html")
+    with pytest.raises(ValueError, match="patch"):
+        validate_resource_item(_base(patches=[{"file": "../index.html", "pattern": "x", "replace": ""}], **base))
+    with pytest.raises(ValueError, match="patch"):
+        validate_resource_item(_base(patches=[{"file": "index.html", "pattern": "(", "replace": ""}], **base))
+    with pytest.raises(ValueError, match="patch"):
+        validate_resource_item(_base(patches=[{"file": "index.html", "pattern": "x"}], **base))
+    item = validate_resource_item(_base(patches=[{"file": "assets/*.js", "pattern": "a", "replace": "b"}], **base))
+    assert item.patches[0]["file"] == "assets/*.js"
+    assert item.patches_digest

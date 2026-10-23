@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import json
+import re
 import shutil
 import stat
 import tarfile
@@ -157,6 +158,23 @@ def extract_archive(archive: Path, dest_dir: Path, fmt: str, subdir: str = "") -
     return count
 
 
+def apply_patches(app_dir: Path, patches: List[Dict[str, str]]) -> None:
+    """Apply catalog patches inside a staged app; every patch must change at least one file."""
+    for index, patch in enumerate(patches):
+        targets = sorted(p for p in app_dir.glob(patch["file"]) if p.is_file())
+        pattern = re.compile(patch["pattern"], re.DOTALL)
+        replacement = patch["replace"]
+        hits = 0
+        for target in targets:
+            text = target.read_text(encoding="utf-8")
+            patched, count = pattern.subn(lambda _m: replacement, text)
+            if count:
+                target.write_text(patched, encoding="utf-8")
+                hits += count
+        if hits == 0:
+            raise ValueError(f"patch {index} ({patch['file']}) no longer matches the upstream build")
+
+
 def _resolve_entrypoint(app_dir: Path, entrypoint: str) -> Optional[str]:
     """Return the concrete entry URL (relative to app_dir) or None if missing."""
     if entrypoint:
@@ -219,6 +237,8 @@ class SyncManager:
         if not self.artifact_exists(item):
             return False
         record = self.manifest.get(item.id)
+        if record is not None and record.get("patches", "") != item.patches_digest:
+            return False
         if record is None:
             # Installed by an older version without a manifest: keep it if it is valid
             path = self.get_destination_for_item(item)
@@ -236,6 +256,7 @@ class SyncManager:
         shutil.rmtree(staging, ignore_errors=True)
         try:
             extract_archive(archive, staging, item.format, item.extract_subdir)
+            apply_patches(staging, item.patches)
             entry = _resolve_entrypoint(staging, item.entrypoint)
             if entry is None:
                 raise ValueError(f"entrypoint '{item.entrypoint or 'index.html'}' missing from archive")
@@ -318,6 +339,7 @@ class SyncManager:
             "sha256": resolved.sha256,
             "size": size,
             "entry": entry,
+            "patches": item.patches_digest,
             "synced_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         })
         self.manifest.save()

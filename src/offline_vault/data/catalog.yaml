@@ -1565,7 +1565,8 @@ resources:
     extract_subdir: "usr/share/nginx/html"
     entrypoint: "index.html"
     serve_root: true
-    description: "Hand-drawn style whiteboard for architecture sketches and threat models (official Docker image build; fonts are bundled, its analytics script only loads when online)."
+    patches: [{"file": "index.html", "pattern": "<script>\\s*// need to load this script dynamically.*?</script>", "replace": ""}, {"file": "index.html", "pattern": "\"https://excalidraw\\.nyc3\\.cdn\\.digitaloceanspaces\\.com/oss/\",\\s*", "replace": ""}, {"file": "index.html", "pattern": "<link rel=\"preload\" href=\"https://excalidraw\\.nyc3\\.cdn\\.digitaloceanspaces\\.com/[^\"]*\"[^>]*>", "replace": ""}, {"file": "assets/index-*.css", "pattern": "url\\(https://excalidraw\\.nyc3\\.cdn\\.digitaloceanspaces\\.com/[^)]*\\) format\\(\"woff2\"\\),", "replace": ""}]
+    description: "Hand-drawn style whiteboard for architecture sketches and threat models (official Docker image build; analytics and CDN font loading removed, bundled fonts used)."
     tags: ["tools", "whiteboard", "diagrams", "architecture", "starter"]
 
   - id: "drawnix_whiteboard"
@@ -1581,7 +1582,8 @@ resources:
     extract_subdir: "home/static"
     entrypoint: "index.html"
     serve_root: true
-    description: "Whiteboard with mind maps, flowcharts and freehand drawing (official Docker image build). Opens in Chinese; switch the language in its menu."
+    patches: [{"file": "index.html", "pattern": "\\s*<script[^>]*src=\"https://cloud\\.umami\\.is/[^\"]*\"[^>]*>\\s*</script>", "replace": ""}, {"file": "index.html", "pattern": "<head>", "replace": "<head><script>try{if(!localStorage.getItem(\"language\"))localStorage.setItem(\"language\",\"en\")}catch(e){}</script>"}, {"file": "index.html", "pattern": "<html lang=\"zh-CN\">", "replace": "<html lang=\"en\">"}, {"file": "index.html", "pattern": "<title>[^<]*</title>", "replace": "<title>Drawnix</title>"}]
+    description: "Whiteboard with mind maps, flowcharts and freehand drawing (official Docker image build; Umami analytics removed, English by default)."
     tags: ["tools", "whiteboard", "mindmap", "diagrams"]
 
   - id: "periodic_table_cyberpunk"
@@ -1594,7 +1596,8 @@ resources:
     upstream_url: "https://github.com/SeanWong17/Future-Style-Periodic-Table/archive/refs/heads/gh-pages.tar.gz"
     extract_subdir: "Future-Style-Periodic-Table-gh-pages"
     entrypoint: "index.html"
-    description: "Cyberpunk-styled interactive periodic table with 3D electron configurations (prebuilt gh-pages site). Opens in Chinese; tap EN."
+    patches: [{"file": "assets/index-*.js", "pattern": "currentLanguage:\"zh\"", "replace": "currentLanguage:\"en\""}, {"file": "index.html", "pattern": "<html lang=\"zh-CN\">", "replace": "<html lang=\"en\">"}, {"file": "index.html", "pattern": "<title>[^<]*</title>", "replace": "<title>Future-Style Periodic Table</title>"}]
+    description: "Cyberpunk-styled interactive periodic table with 3D electron configurations (prebuilt gh-pages site; English by default). Element photos load only when online."
     tags: ["tools", "chemistry", "science", "teaching", "starter"]
 
   - id: "astronomy_engine_demos"

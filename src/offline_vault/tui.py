@@ -235,7 +235,7 @@ Files keep versionless names, so bookmarks survive updates:
 | **Web apps** | Browser via `offline-vault serve` in Termux | `tools/` |
 | **`.z5` / `.z8`** | `pkg install frotz` in Termux | `fun/` |
 | **`.apk`** | File manager: install from file | `apps/` |
-| **Kolibri** | **Kolibri** app: import from folder or from a PC on Wi-Fi | `tutorials/kolibri/` |
+| **Kolibri** | **Kolibri** app: import from the vault folder | `tutorials/kolibri/` |
 
 **Kiwix:** the Play Store build opens ZIMs through the file picker; the APK build can scan the vault folder.
 
@@ -244,7 +244,7 @@ IT-Tools, Excalidraw and Drawnix get their own ports (8001, 8002, ...), listed o
 
 ---
 
-### 💻 Local Serving
+### 💻 Local Serving (localhost only)
 - `offline-vault serve --static`: portal and web apps at `http://localhost:8000`
 - `offline-vault serve --kiwix`: Kiwix server at `http://localhost:8000`
 - `offline-vault serve --kolibri`: Kolibri at `http://localhost:8080`

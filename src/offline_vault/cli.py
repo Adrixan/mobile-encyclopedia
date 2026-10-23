@@ -54,7 +54,7 @@ def build_parser() -> argparse.ArgumentParser:
     serve_p.add_argument("--kolibri", action="store_true", help="Start Kolibri offline LMS server")
     serve_p.add_argument("--kiwix", action="store_true", help="Start Kiwix ZIM server")
     serve_p.add_argument("--static", action="store_true", help="Start static HTTP doc & web tools server")
-    serve_p.add_argument("--host", default="0.0.0.0", help="Host address to bind on (default: 0.0.0.0)")
+    serve_p.add_argument("--host", default="127.0.0.1", help="Loopback address to bind (localhost only; default: 127.0.0.1)")
     serve_p.add_argument("--port", "-p", type=int, help="Port to listen on (default: 8080 for Kolibri, 8000 for Kiwix/Static)")
     serve_p.add_argument("--vault-dir", help="Override vault directory")
 
@@ -160,15 +160,20 @@ def handle_sync(args: argparse.Namespace, config: VaultConfig, catalog: Resource
 def handle_serve(args: argparse.Namespace, config: VaultConfig, console: Console) -> int:
     """Handle 'serve' subcommand supporting Kolibri LMS, Kiwix, and Static docs."""
     from offline_vault.server import (
+        LOOPBACK_ONLY_MESSAGE,
         find_kiwix_serve_executable,
         find_kolibri_executable,
+        is_loopback_host,
         run_kiwix_server,
         run_kolibri_server,
         run_static_server,
     )
 
     vault_dir = Path(args.vault_dir if args.vault_dir else config.vault_dir).resolve()
-    host = getattr(args, "host", "0.0.0.0")
+    host = args.host
+    if not is_loopback_host(host):
+        console.print(f"[bold red]{LOOPBACK_ONLY_MESSAGE}[/bold red]")
+        return 2
 
     # 1. Explicit Kolibri flag
     if args.kolibri:
