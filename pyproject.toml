@@ -31,7 +31,7 @@ offline-vault = "offline_vault.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"offline_vault" = ["data/*.yaml", "locales/*.json"]
+"offline_vault" = ["data/*.yaml", "locales/*.json", "locales/help/*.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -77,3 +77,67 @@ def test_locale_names_cannot_traverse_paths(tmp_path):
     set_locale(traversal)
     assert t("btn_quit") == "Quit"
     set_locale("en")
+
+
+def test_every_locale_has_a_help_guide():
+    from offline_vault.i18n import get_locales_dir
+
+    for path in get_locales_dir().glob("*.json"):
+        guide = get_locales_dir() / "help" / f"{path.stem}.md"
+        assert guide.is_file(), f"missing help guide for {path.stem}"
+        assert guide.read_text(encoding="utf-8").startswith("# ")
+
+
+def test_help_markdown_follows_locale_and_falls_back_to_english():
+    from offline_vault.i18n import help_markdown
+
+    try:
+        set_locale("de")
+        assert "Tastatur" in help_markdown()
+        set_locale("xx")
+        assert "Keyboard" in help_markdown()
+    finally:
+        set_locale("en")
+    assert "Keyboard" in help_markdown()
+
+
+def test_tui_footer_and_help_follow_locale(tmp_path):
+    import asyncio
+
+    from textual.widgets import Markdown
+
+    from offline_vault.config import VaultConfig
+    from offline_vault.tui import HelpScreen, OfflineVaultApp
+
+    async def scenario():
+        app = OfflineVaultApp(config=VaultConfig(vault_dir=str(tmp_path), locale="de"))
+        async with app.run_test(size=(160, 50)) as pilot:
+            await pilot.pause()
+            descriptions = {b.action: b.description for _, b in app._bindings}
+            assert descriptions["quit"] == "Beenden"
+            assert descriptions["show_help"] == "Hilfe"
+            assert descriptions["start_sync"] == "Synchronisieren"
+            await pilot.press("h")
+            await pilot.pause()
+            assert isinstance(app.screen, HelpScreen)
+            assert "Tastatur" in app.screen.query_one(Markdown).source
+            help_labels = {b.action: b.description for _, b in app.screen._bindings}
+            assert help_labels["close"] == "Schließen"
+            assert all(not d.startswith("key_") for d in help_labels.values())
+
+    try:
+        asyncio.run(scenario())
+    finally:
+        set_locale("en")
+
+
+def test_every_binding_description_has_a_translation_key():
+    import json
+
+    from offline_vault.i18n import get_locales_dir
+    from offline_vault.tui import HelpScreen, OfflineVaultApp
+
+    english = json.loads((get_locales_dir() / "en.json").read_text(encoding="utf-8"))
+    for cls in (OfflineVaultApp, HelpScreen):
+        for binding in cls.BINDINGS:
+            assert f"key_{binding.action}" in english, binding.action

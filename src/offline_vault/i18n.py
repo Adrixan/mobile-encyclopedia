@@ -68,3 +68,15 @@ def t(key: str, **kwargs: Any) -> str:
         except Exception:
             return template
     return template
+
+
+def help_markdown() -> str:
+    """Return the help guide (Markdown) for the active locale, falling back to English."""
+    help_dir = get_locales_dir() / "help"
+    for locale in (_CURRENT_LOCALE, DEFAULT_LOCALE):
+        if not _LOCALE_RE.match(locale):
+            continue
+        path = help_dir / f"{locale}.md"
+        if path.is_file():
+            return path.read_text(encoding="utf-8")
+    return ""

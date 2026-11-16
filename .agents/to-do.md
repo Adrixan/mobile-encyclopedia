@@ -41,9 +41,13 @@
 - [x] 137 tests green; `scripts/check.sh` green (locks consistent, pip-audit clean); actionlint clean; fresh `run.sh` bootstrap from hashed locks; live user-style `offline-vault refresh` without token (131/134 refreshed, 3 kept packaged values on 429/timeout); live concurrent sync; portal screenshot.
 - [x] Found and fixed on the way: fixed-URL items never updated after first sync; eager `setdefault` made pinned sizes hit the network; resume marker ignored version changes; locale path traversal.
 
+## Chore (2026-11-16): i18n of help screen and footer
+- [x] Help guide per locale in `locales/help/<locale>.md` (en, de, es, bs) via `i18n.help_markdown()` (English fallback, locale name validated); shipped as package data.
+- [x] Footer key labels: `key_<action>` keys in every locale; `tui.localize_bindings()` rewrites the app and help screen bindings at start; inherited Textual bindings keep their labels.
+- [x] 141 tests green (4 new), `scripts/check.sh` green, wheel contains the help files, German TUI and help checked in a headless screenshot.
+
 ## Backlog
 - Not tested on a device: APK installs from the vault, Kiwix APK scanning the vault folder, Kolibri app folder import, Termux `pip install kolibri`.
-- Help screen text and footer key labels are English only.
 - Standard Ebooks rate-limits per IP (bare 429, no Retry-After); syncing many titles at once may need a second run.
 
 ## Decisions (kept as is)

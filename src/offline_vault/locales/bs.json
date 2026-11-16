@@ -61,5 +61,15 @@
   "refresh_started": "Osvježavanje kataloga iz izvora...",
   "refresh_done": "Katalog osvježen: stavki: {items}",
   "refresh_kept": "{count} sa ugrađenim vrijednostima",
-  "refresh_failed": "Osvježavanje nije uspjelo: {error}"
+  "refresh_failed": "Osvježavanje nije uspjelo: {error}",
+  "key_quit": "Izlaz",
+  "key_toggle_row": "Označi",
+  "key_start_sync": "Sinhronizuj",
+  "key_change_path": "Putanja",
+  "key_show_help": "Pomoć",
+  "key_select_all": "Sve",
+  "key_clear_all": "Očisti",
+  "key_focus_search": "Traži",
+  "key_refresh_catalog": "Osvježi",
+  "key_close": "Zatvori"
 }

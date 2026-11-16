@@ -61,5 +61,15 @@
   "refresh_started": "Katalog wird aus den Quellen aktualisiert ...",
   "refresh_done": "Katalog aktualisiert: {items} Einträge",
   "refresh_kept": "{count} mit mitgelieferten Werten",
-  "refresh_failed": "Aktualisierung fehlgeschlagen: {error}"
+  "refresh_failed": "Aktualisierung fehlgeschlagen: {error}",
+  "key_quit": "Beenden",
+  "key_toggle_row": "Auswählen",
+  "key_start_sync": "Synchronisieren",
+  "key_change_path": "Pfad",
+  "key_show_help": "Hilfe",
+  "key_select_all": "Alle",
+  "key_clear_all": "Leeren",
+  "key_focus_search": "Suche",
+  "key_refresh_catalog": "Aktualisieren",
+  "key_close": "Schließen"
 }
