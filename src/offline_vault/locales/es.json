@@ -61,5 +61,15 @@
   "refresh_started": "Actualizando el catálogo desde las fuentes...",
   "refresh_done": "Catálogo actualizado: {items} elementos",
   "refresh_kept": "{count} con valores incluidos",
-  "refresh_failed": "Error al actualizar: {error}"
+  "refresh_failed": "Error al actualizar: {error}",
+  "key_quit": "Salir",
+  "key_toggle_row": "Marcar",
+  "key_start_sync": "Sincronizar",
+  "key_change_path": "Ruta",
+  "key_show_help": "Ayuda",
+  "key_select_all": "Todo",
+  "key_clear_all": "Limpiar",
+  "key_focus_search": "Buscar",
+  "key_refresh_catalog": "Actualizar",
+  "key_close": "Cerrar"
 }

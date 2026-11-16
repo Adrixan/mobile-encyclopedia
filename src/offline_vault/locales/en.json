@@ -61,5 +61,15 @@
   "refresh_started": "Refreshing catalog from upstream indexes...",
   "refresh_done": "Catalog refreshed: {items} items",
   "refresh_kept": "{count} kept packaged values",
-  "refresh_failed": "Refresh failed: {error}"
+  "refresh_failed": "Refresh failed: {error}",
+  "key_quit": "Quit",
+  "key_toggle_row": "Toggle Item",
+  "key_start_sync": "Start Sync",
+  "key_change_path": "Set Path",
+  "key_show_help": "Help",
+  "key_select_all": "Select All",
+  "key_clear_all": "Clear",
+  "key_focus_search": "Search",
+  "key_refresh_catalog": "Refresh",
+  "key_close": "Close"
 }
